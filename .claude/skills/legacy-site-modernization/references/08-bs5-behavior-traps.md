@@ -13,6 +13,7 @@
 
 ## 目錄
 
+- [先跑兩支稽核腳本，把掃得到的先掃掉](#先跑兩支稽核腳本把掃得到的先掃掉)
 - [先講一個判準：這一項該修在哪裡](#先講一個判準這一項該修在哪裡)
 - [1. `.form-control` 移除固定 height](#1-form-control-移除固定-height)
 - [2. `.col-*` 不再是定位基準](#2-col--不再是定位基準)
@@ -27,6 +28,30 @@
 - [查這一批的順序](#查這一批的順序)
 
 ---
+
+## 先跑兩支稽核腳本，把掃得到的先掃掉
+
+本章九項裡有七項可以用腳本先篩一輪，剩下兩項才需要人工。**動工時就跑，不要等使用者逐頁回報跑版**——
+第 4、5、6、7 項光靠目視很難聯想到是 Bootstrap 造成的，容易繞遠路。
+
+```bash
+git show HEAD:vendor/bootstrap/css/bootstrap.css > /tmp/bs4.css
+node .claude/skills/legacy-site-modernization/scripts/audit-behavior-changes.js <專案目錄>
+node .claude/skills/legacy-site-modernization/scripts/audit-bs5-component-vars.js <專案目錄> /tmp/bs4.css
+```
+
+| 本章項目 | 誰掃 |
+|---|---|
+| 1、2、3、5、6、8 | `audit-behavior-changes.js`（另含本章沒獨立列項的「`a` 預設有底線」） |
+| 4 | `audit-bs5-component-vars.js` |
+| **7、9** | **兩支都掃不到，只能人工**。第 7 項的 `--bs-card-spacer-*` 是尺寸類變數，不在後者的顏色比對範圍；第 9 項要比對選擇器特異度，沒有規則實作 |
+
+兩個限制要先知道，因為它們的失敗方式都是「回報乾淨」：
+
+- **腳本假設扁平結構**：只讀 `<專案目錄>/*.html`（不遞迴）、`<專案目錄>/css/*.css`、`<專案目錄>/js/*.js`，
+  相容層固定找 `css/bs4-compat.css`。頁面放在 `pages/` 或樣式放在 `assets/css/` 的專案不會報錯，只會少掃檔案。
+- **是啟發式檢查不是證明**：回報 0 項只代表「這幾條規則沒命中」，不代表沒有行為差異。
+  驗收仍要照 [`07-visual-regression-verification.md`](07-visual-regression-verification.md) 走三層。
 
 ## 先講一個判準：這一項該修在哪裡
 
@@ -289,7 +314,8 @@ grep -rEn '\.[a-zA-Z-]+[[:space:]]*>[[:space:]]*\.[a-zA-Z-]+[[:space:]]*>' --inc
 
 1. **先跑 4-7**（格線與容器層級），把整頁位移的原因排除掉。整頁都在動的時候，
    逐個元件去查是浪費時間。
-2. **再用上面每一項的 grep 篩出「站上有沒有這個結構」**。沒命中的項目直接跳過，
+2. **跑[兩支稽核腳本](#先跑兩支稽核腳本把掃得到的先掃掉)**，再用上面每一項的 grep 補上腳本涵蓋不到的第 7、9 項，
+   篩出「站上有沒有這個結構」。沒命中的項目直接跳過，
    不要為了完整性把用不到的規則寫進覆寫層——覆寫層越小越好維護，
    每一條都要說得出為什麼存在。
 3. **命中的項目逐一套判準**決定修在覆寫層還是專案自己的 CSS。
