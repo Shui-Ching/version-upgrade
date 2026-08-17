@@ -296,6 +296,57 @@ fetch(url)
 - 如果動畫結束後要停在最後一格（例如展開選單維持展開），要加 `animation-fill-mode: both`，否則動畫播完會回到 `0%` 的起始格。
 - 驗收時不要只看「class 有沒有切換對」，要實際觸發一次操作、用眼睛確認動畫真的有播放。
 
+### 陷阱 14：`class + animation-name` 只能做「出現」動畫，做不出「消失」動畫
+
+陷阱 13 提醒過忘記寫 `animation-duration` 的後果，但即使 `animation-duration`、`animation-fill-mode` 都寫對，這個替換法本身還有一個更前面的結構性限制：**keyframe animation 是靠選擇器匹配觸發播放的，class 被移除的那一刻沒有任何機制能反向播放它**。`.is-open { animation-name: fadeInDown; }` 只能在「加上 `.is-open`」的瞬間播放一次進場動畫；「移除 `.is-open`」不會觸發任何動畫，元素只會照 CSS 的預設規則（通常是 `display:none`）瞬間消失。
+
+這個限制特別容易被忽略，因為**展開的體驗完全正常**——正是這一點讓人誤以為整個效果都是動畫在管。收合當下不會有任何錯誤訊息，開發者工具裡也確實能看到 `animation-name` 生效過，唯獨少了「反向」這件事，只有實際點擊收合、用眼睛看才發現「怎麼是瞬間消失」。
+
+判斷方法：檢查 CSS 裡負責收合的規則長什麼樣子。如果動畫只寫在 `.is-open{ animation-name: ...}` 這一條、收合是靠移除 `.is-open`、退回預設的 `display:none`，那就一定沒有收合動畫——不用實際點擊測試，光看程式碼就能判斷出來。
+
+**修法**：改用 JS 量測實際高度、驅動 `height` 的 `transition`（而不是 `animation-name`），開合兩個方向天生就是同一組 transition 的正反向，不需要額外處理反向動畫。以下是驗證過可以直接用的寫法（來源：TCnews5.3.7 手機選單改寫，效果對齊 jQuery 已移除的 `.slideToggle()`）：
+
+```js
+// el._slideTimer 記錄計時器，讓連續點擊時能取消上一輪還沒跑完的動畫收尾，
+// 避免舊的 setTimeout 在新一輪動畫開始後才觸發、蓋掉新設定的 inline style。
+function slideOpen(el, duration) {
+  clearTimeout(el._slideTimer);
+  el.style.display = 'block';
+  const target = el.scrollHeight;
+  el.style.height = '0px';
+  el.style.overflow = 'hidden';
+  el.style.transition = 'height ' + duration + 'ms ease';
+  void el.offsetHeight; // 強制 reflow，見下方說明
+  el.style.height = target + 'px';
+  el._slideTimer = setTimeout(function() {
+    el.style.removeProperty('height');
+    el.style.removeProperty('overflow');
+    el.style.removeProperty('transition');
+  }, duration);
+}
+function slideClose(el, duration, onDone) {
+  clearTimeout(el._slideTimer);
+  el.style.height = el.scrollHeight + 'px';
+  el.style.overflow = 'hidden';
+  el.style.transition = 'height ' + duration + 'ms ease';
+  void el.offsetHeight; // 強制 reflow，見下方說明
+  el.style.height = '0px';
+  el._slideTimer = setTimeout(function() {
+    el.style.display = 'none';
+    el.style.removeProperty('height');
+    el.style.removeProperty('overflow');
+    el.style.removeProperty('transition');
+    if (onDone) onDone();
+  }, duration);
+}
+```
+
+`void el.offsetHeight` 這行是關鍵：瀏覽器會把同一個 frame 內對同一個屬性的多次寫入合併成一次，如果不強制讀一次觸發 reflow，起始高度跟目標高度會被合併，動畫直接跳過去，效果跟完全沒寫 `transition` 一樣——這是另一個「程式碼看起來對、要實際看效果才發現沒有動畫感」的陷阱，成因跟陷阱 13（漏寫 duration）不同，但外顯症狀一樣。
+
+改寫檢查清單：
+- 判斷這個效果需不需要「兩個方向都動畫」：只出現一次、不會被使用者重複觸發收合的（例如頁面載入時的一次性淡入）才適合用 `animation-name`；使用者能重複開合的（選單、手風琴、對話框）一律用上面的 `transition` 寫法，不要用 class + animation-name。
+- 驗收時不能只點開來看——**收合也要實際點一次，用眼睛確認高度是平滑變化、不是瞬間消失**。跟陷阱 12 一樣，只測了一半的操作會漏掉另一半的問題。
+
 ---
 
 ## 步驟 4：什麼時候可以真的把 jQuery 標籤刪掉
