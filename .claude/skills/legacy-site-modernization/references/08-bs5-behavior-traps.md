@@ -306,6 +306,23 @@ grep -rEn '\.[a-zA-Z-]+[[:space:]]*>[[:space:]]*\.[a-zA-Z-]+[[:space:]]*>' --inc
 所以本章所有指令一律不用 `\b`。需要單字邊界時用 `\<`／`\>`；不需要精確邊界的就不加，
 改用「先用寬鬆 pattern 撈出來、再人工看過」的兩段式（第 4 項的指令就是這樣寫的）。
 
+### 一筆對不上的複測（2026-08-17）
+
+併入 `09-bs4-compat-layer.md` 時重跑了一次上面的測試，**`\b` 沒有重現失效**：
+同樣是 Git Bash 的 GNU grep 3.0、同樣純 ASCII 測試檔（內容 `nav navbar`）、
+`LC_ALL` 與 `LANG` 皆為空，BRE（`grep -o`）、ERE（`grep -oE`）、
+遞迴加 `--include`（`grep -rEon`）三種形式都正確回 1 筆，不是 0 筆。
+`grep -P` 回 `-P supports only unibyte and UTF-8 locales` 這半則有重現。
+
+兩份量測都留著，不刪任何一份——**沒有證據能判定哪一次量錯**，
+可能是 Git Bash 建置版本或當時的環境變數有差異。
+
+**結論不變，理由改了**：仍然一律用 `\<`／`\>`，但根據是
+「`\<`／`\>` 是 GNU grep 的原生語法、在 BRE 與 ERE 下行為一致，而 `\b` 有一次量到失效紀錄」，
+不是「這個 grep 不支援 `\b`」。這個差別會影響除錯方向——
+遇到掃描回 0 筆時，不要因為以為 `\b` 一定失效就停在那個假設，
+照 SKILL.md 的規定用一個「一定命中」的字串實測一次。
+
 這一條呼應 [`07-visual-regression-verification.md` 的「掃描指令要先自我驗證」](07-visual-regression-verification.md#掃描指令要先自我驗證)：
 **任何回傳 0 筆的掃描，先用一個「一定命中」的簡化 pattern 確認指令本身會動**，
 再把 0 筆當成結論。
