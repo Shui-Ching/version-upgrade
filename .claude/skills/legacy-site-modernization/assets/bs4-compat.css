@@ -1,0 +1,232 @@
+@charset "UTF-8";
+/*!
+ * bs4-compat.css — Bootstrap 4.6.2 → 5.3.x 升級相容層【樣板】
+ *
+ * 把 BS5 移除或改名的 BS4 定義補回，讓既有 HTML 不必修改 class。
+ * 數值皆取自 BS4.6.2 原始碼，非估算值。
+ * 載入順序：bootstrap.min.css 之後、自家 theme.css / custom.css 之前。
+ * 過渡用檔案，各段的 class 換成 BS5 原生寫法後即可逐段刪除。
+ *
+ * ── 使用方式 ────────────────────────────────────────────────────
+ * 這是起手樣板，不是成品。複製到專案後：
+ * 1. 先跑盤點（見 SKILL.md），**刪掉站上沒用到的段落**——相容層越小越好維護。
+ * 2. 標【專案專屬】的段落必須依實際情況改寫或刪除。
+ * 3. 最下方的方向性 utility 是完整對照表，只留盤點有命中的，其餘刪掉。
+ */
+
+/* Reboot ---------------------------------------------------------- */
+
+/* BS5 新增 :root{scroll-behavior:smooth}，會與 jQuery animate({scrollTop})
+   互相追逐而頓挫。站上的捲動動畫改用原生 scrollTo 後可刪。
+   若專案沒有 jQuery 捲動動畫，這段刪掉（保留 BS5 的平滑捲動更好）。 */
+:root {
+  scroll-behavior: auto;
+}
+
+/* BS5 的 a 改為 text-decoration: underline */
+a {
+  text-decoration: none;
+}
+
+/* 【專案專屬】BS5 元件改用 --bs-* 變數，會蓋掉原本從 body 繼承的字色。
+   受影響的元件不只 modal（offcanvas、dropdown、card、table 同一套機制），
+   跑 scripts/audit-bs5-component-vars.js 找出實際受影響的，逐一指回自家 token。 */
+.modal {
+  --bs-modal-color: inherit;      /* ← 換成專案的字色 token */
+}
+
+/* Grid ------------------------------------------------------------ */
+
+/* BS4 的 .col-* 都帶 position:relative，BS5 移除。
+   站上若有在欄位內用 absolute 疊放元素（輸入框內的 icon、角標）就需要補。
+   限定直接子元素，避免誤傷 .col-form-label 這類名字像 col 但非 grid 的 class。 */
+.row > *,
+.form-row > * {
+  position: relative;
+}
+
+/* 表單 ------------------------------------------------------------ */
+
+/* BS4 的 .form-control 有固定 height，BS5 改由 padding 撐出。
+   自家 CSS 若有把上下 padding 歸零，少了 height 會整批縮水。
+   沒有這種覆蓋的專案可以不補，讓 BS5 自然撐開即可。 */
+.form-control {
+  height: calc(1.5em + 0.75rem + 2px);
+}
+
+textarea.form-control {
+  height: auto;
+}
+
+/* BS5 的 .form-control 新增 appearance:none，select 原生箭頭會消失
+   （BS5 預期改用 .form-select）。只還原 select，避免影響 input 的
+   date/number 原生介面。 */
+select.form-control {
+  -webkit-appearance: auto;
+  -moz-appearance: auto;
+  appearance: auto;
+}
+
+/* BS5 移除 .form-row（→ .row.g-2）。BS4 gutter 為 5px 且會覆蓋 .row 的 15px，
+   不補回會變成 BS5 預設的 24px。 */
+.form-row {
+  display: flex;
+  flex-wrap: wrap;
+  margin-right: -5px;
+  margin-left: -5px;
+}
+
+.form-row > .col,
+.form-row > [class*="col-"] {
+  padding-right: 5px;
+  padding-left: 5px;
+}
+
+/* .form-row 與 .row 併用時改走 BS5 的變數，算出來同為左右各 5px
+   （比硬寫 margin 更貼合框架機制） */
+.form-row.row {
+  --bs-gutter-x: 10px;
+}
+
+/* BS5 移除 .form-group（→ .mb-3） */
+.form-group {
+  margin-bottom: 1rem;
+}
+
+/* BS5 移除 .form-inline */
+.form-inline {
+  display: flex;
+  flex-flow: row wrap;
+  align-items: center;
+}
+
+.form-inline .form-group {
+  display: flex;
+  flex: 0 0 auto;
+  flex-flow: row wrap;
+  align-items: center;
+  margin-bottom: 0;
+}
+
+/* BS5 移除 .input-group-append / .input-group-prepend（不再需要包裹層） */
+.input-group-prepend,
+.input-group-append {
+  display: flex;
+}
+
+.input-group-prepend {
+  margin-right: -1px;
+}
+
+.input-group-append {
+  margin-left: -1px;
+}
+
+/* 卡片 ------------------------------------------------------------ */
+
+/* BS4 的 .card-body 是寫死的 padding: 1.25rem；
+   BS5 改為 padding: var(--bs-card-spacer-y) var(--bs-card-spacer-x)，
+   而這組變數定義在 .card 上。若站上有「.card-body 沒有 .card 祖先」的用法
+   （手風琴常見：.faq-item > .collapse > .card-body），變數取不到值會讓
+   padding 整個失效——不是變小，是歸零，文字會貼齊邊框。
+   確認方式：搜出所有 .card-body，檢查是否都在 .card 內。 */
+.card-body {
+  padding: 1.25rem;
+}
+
+/* 關閉鈕 ---------------------------------------------------------- */
+
+/* BS5 的 .close 改名 .btn-close 且外觀改為 SVG 背景圖。
+   舊站多半是自帶 × 文字的寫法，沿用 BS4 樣式才不會變成空白方塊。 */
+.close {
+  float: right;
+  font-size: 1.5rem;
+  font-weight: 700;
+  line-height: 1;
+  color: #000;
+  text-shadow: 0 1px 0 #fff;
+  opacity: .5;
+}
+
+.close:hover {
+  color: #000;
+  text-decoration: none;
+}
+
+.close:not(:disabled):not(.disabled):hover,
+.close:not(:disabled):not(.disabled):focus {
+  opacity: .75;
+}
+
+button.close {
+  padding: 0;
+  background-color: transparent;
+  border: 0;
+}
+
+a.close.disabled {
+  pointer-events: none;
+}
+
+.modal-header .close {
+  padding: 1rem 1rem;
+  margin: -1rem -1rem -1rem auto;
+}
+
+/* 方向性 utility --------------------------------------------------- */
+/* BS5 改為邏輯屬性命名（left/right → start/end）。
+   以下為完整對照，**只留盤點有命中的，其餘全刪**。
+   間距類需自行展開實際用到的階數與斷點：
+   .m{l,r}-{0..5} → .m{s,e}-*、.p{l,r}-* → .p{s,e}-*
+   斷點變體格式為 .ml-md-3 → .ms-md-3，需包在對應 @media 內。
+   BS4 間距階數：0=0、1=.25rem、2=.5rem、3=1rem、4=1.5rem、5=3rem */
+
+.text-left {                  /* → BS5 .text-start */
+  text-align: left !important;
+}
+
+.text-right {                 /* → BS5 .text-end */
+  text-align: right !important;
+}
+
+.float-left {                 /* → BS5 .float-start */
+  float: left !important;
+}
+
+.float-right {                /* → BS5 .float-end */
+  float: right !important;
+}
+
+.border-left {                /* → BS5 .border-start */
+  border-left: 1px solid #dee2e6 !important;
+}
+
+.border-right {               /* → BS5 .border-end */
+  border-right: 1px solid #dee2e6 !important;
+}
+
+.rounded-left {               /* → BS5 .rounded-start */
+  border-top-left-radius: .25rem !important;
+  border-bottom-left-radius: .25rem !important;
+}
+
+.rounded-right {              /* → BS5 .rounded-end */
+  border-top-right-radius: .25rem !important;
+  border-bottom-right-radius: .25rem !important;
+}
+
+/* 間距（示範兩階，依盤點結果增刪） */
+.ml-2 {                       /* → BS5 .ms-2 */
+  margin-left: .5rem !important;
+}
+
+.mr-2 {                       /* → BS5 .me-2 */
+  margin-right: .5rem !important;
+}
+
+/* 斷點變體示範 */
+@media (min-width: 1200px) {
+  .mr-xl-5 {                  /* → BS5 .me-xl-5 */
+    margin-right: 3rem !important;
+  }
+}

@@ -6,6 +6,7 @@
 
 - [步驟 0：判定起始版本（兩層偵測）](#步驟-0判定起始版本兩層偵測)
 - [步驟 1：估規模、確認策略與升級路徑](#步驟-1估規模確認策略與升級路徑)
+  - [選項 3 的兩種執行手法：改 markup 還是補相容層](#選項-3-的兩種執行手法改-markup-還是補相容層)
   - [1-1 BS3 起點：要不要中途經過 BS4？](#1-1-bs3-起點要不要中途經過-bs4)
   - [1-2 用「並存寫法」縮小原子切換的範圍](#1-2-用並存寫法縮小原子切換的範圍)
 - [步驟 2：共通工作（BS3、BS4 起點都要做）](#步驟-2共通工作bs3bs4-起點都要做)
@@ -21,7 +22,7 @@
 - [步驟 5：驗收](#步驟-5驗收)
 
 另見 [`08-bs5-behavior-traps.md`](08-bs5-behavior-traps.md)：**同名 class 的行為改變（元件層級）**——
-class 名稱兩版都在、掃描一定通過、但預設值改了的八項。本章的 4-7 是格線與容器層級的同類問題，
+class 名稱兩版都在、掃描一定通過、但預設值改了的九項。本章的 4-7 是格線與容器層級的同類問題，
 兩章要一起查。
 
 ---
@@ -119,6 +120,24 @@ done
 
 BS3 起點且 B 類命中數量大時，明講「這個落差本身就是一輪任務的規模，不適合跟其他節點擠在同一個 commit」——這條在節點 7 的原始說明裡就有，這裡是把它變成可執行的判斷。
 
+### 選項 3 的兩種執行手法：改 markup 還是補相容層
+
+選了選項 3（分批）之後還有一個岔路，兩條路對同一段 HTML 給的是相反的指示，要在這裡決定，不要邊做邊換：
+
+| | 改 markup | 補相容層 |
+|---|---|---|
+| 做法 | 照[步驟 3](#步驟-3bs4--bs5-差異清單)逐處把舊 class 換成 BS5 寫法 | utility class 一律不動，用一支 CSS 把 BS5 移除掉的定義補回來 |
+| 工作量 | 頁數 × 每頁數十處，逐處確認 | 集中在一支 CSS，但要盤點站上用到哪些 class |
+| 風險形狀 | 分散：每一處都是一次改壞版面的機會 | 集中：相容層寫錯會整站一起錯，但也一次就改得回來 |
+| 留下什麼 | 乾淨的 BS5 markup | 一支要維護、且日後要逐段退場的相容層 |
+
+**判準是「改動的分散程度」**：頁數多又沒有共用區（節點 3 還沒做）時補相容層划算；
+站小或已經做過共用區抽取時，逐處改名的量沒有想像中大，改 markup 一次到位比較乾淨。
+
+補相容層那條路的完整做法、適用邊界、四支稽核腳本與起手樣板，見
+[`09-bs4-compat-layer.md`](09-bs4-compat-layer.md)。**BS3 起點只能用它的一半**——
+navbar、`.panel` → `.card`、表單結構是 DOM 重寫，補 CSS 補不出來，那一塊還是得改 markup。
+
 ### 1-1 BS3 起點：要不要中途經過 BS4？
 
 這是 BS3 起點一定會被問到的問題，而它的陷阱在於「兩段升級」有兩種完全不同的意思，穩定性差很多。三個選項只有一個是對的：
@@ -188,6 +207,14 @@ grep -rEon 'data-(toggle|target|dismiss|ride|slide|slide-to|parent|backdrop|keyb
 - **CSS 裡用屬性選擇器上樣式**（`.btndrop[data-toggle='collapse'] span:after { ... }`）——手風琴與展開鈕的 `:after` 箭頭很常這樣寫。改了 HTML 沒改 CSS，這條規則就選不到任何元素。**症狀是「箭頭不見了、CSS 吃不到」而不是「元件失效」**，跟 data 屬性改名聯想不起來，會繞遠路。所以上面的 grep 也要連 `*.css`／`*.scss` 一起掃，HTML 內嵌的 `<style>` 區塊同樣涵蓋在 `*.html` 那一項裡。
 - **不是 Bootstrap 的 data 屬性不要動**：專案自己寫的 `data-target`（例如自製的分頁切換）跟 Bootstrap 的 `data-target` 長得一樣。判斷方法是看這個屬性旁邊有沒有 Bootstrap 的 `data-toggle`，或這個值有沒有被專案自己的 JS 讀取。改錯會把自製功能弄壞，而且同樣是安靜失效。
 
+批次替換可以用本 skill 附的腳本，它刻意把 HTML 與 CSS 綁在一起改（只改一邊正是上面第二點的成因），並會遞迴子資料夾、跳過 `vendor/`。**先跑 `--dry` 確認影響範圍再實際執行**：
+
+```bash
+node .claude/skills/legacy-site-modernization/scripts/migrate-data-attrs.js <專案目錄> --dry
+```
+
+腳本的替換清單是固定的（見原始碼上方的 `ATTRS`），仍要用上面那道 grep 收尾確認沒有漏網；上面第三點「不是 Bootstrap 的 data 屬性」腳本判斷不了，跑完要逐處看過 diff。
+
 ### 2-3 JS 呼叫改成 BS5 的原生 API
 
 BS5 不吃 jQuery，元件要嘛用 `data-bs-*` 屬性驅動，要嘛用 `bootstrap.*` 建構式：
@@ -222,6 +249,8 @@ BS4 起把全域 `font-size` 從 14px 改成 16px、單位從 px 改成 rem、`b
 ---
 
 ## 步驟 3：BS4 → BS5 差異清單
+
+**這一節假設你走的是「改 markup」那條路。** 若在步驟 1 選了[補相容層](#選項-3-的兩種執行手法改-markup-還是補相容層)，下面的對照表仍然要看（它是判斷「哪些 class 需要補」的依據），但右欄要當成「相容層要還原成什麼」而不是「HTML 要改成什麼」，做法見 [`09-bs4-compat-layer.md`](09-bs4-compat-layer.md)。
 
 以下依官方 [Migrating to v5](https://getbootstrap.com/docs/5.3/migration/) 整理。**這是導航用的地圖，不是可以直接餵給 `sed` 的腳本**——同一個字串在不同脈絡下可能不是 Bootstrap 的 class（`.close` 尤其常見於專案自己的樣式），而右欄標「要重寫」的項目根本沒有一對一對應。每一項動手前先用 grep 把命中位置列出來逐一看過；表上沒列到的項目回去查官方文件，不要憑印象補。
 
@@ -440,7 +469,7 @@ BS3 的 navbar 是 `.navbar-default > .navbar-header + .collapse.navbar-collapse
 
 第 4 項不要用 `.row > * { width: auto }` 一次解決——那條規則的權重會蓋掉各級 `.col-*` 的寬度，整個格線就壞了。針對實際有自訂外距的那幾個元素個別處理，並靠[水平溢出量](07-visual-regression-verification.md#三層驗收照這個順序看)確認還有沒有漏網。
 
-**這一節處理完之後接著查 [`08-bs5-behavior-traps.md`](08-bs5-behavior-traps.md)。** 本節是格線與容器層級（後果是整頁位移），08 是同一類問題的**元件層級**版本（`.form-control` 的 height、`.col-*` 的 `position`、`.card-body` 的 padding、元件的 `--bs-*` 變數等八項），後果通常侷限在某一類元件但同樣掃描不到。順序是先本節、後 08——整頁都在位移的時候，逐個元件去查是浪費時間。
+**這一節處理完之後接著查 [`08-bs5-behavior-traps.md`](08-bs5-behavior-traps.md)。** 本節是格線與容器層級（後果是整頁位移），08 是同一類問題的**元件層級**版本（`.form-control` 的 height、`.col-*` 的 `position`、`.card-body` 的 padding、元件的 `--bs-*` 變數、專案舊覆寫被特異度反超等九項），後果通常侷限在某一類元件但同樣掃描不到。順序是先本節、後 08——整頁都在位移的時候，逐個元件去查是浪費時間。
 
 ### 4-8 Less → Sass、px → rem
 
@@ -624,6 +653,15 @@ grep -rEon '\b(col-xs-|col-(sm|md|lg)-(offset|push|pull)-|glyphicon|panel(-headi
 三個指令都要連 `*.scss`／`*.css` 一起掃，不能只掃 HTML——專案自己的樣式檔裡常有針對舊 class 的覆寫規則（`.panel-heading { background: #eee; }`），HTML 改完了但 CSS 還在鎖舊名稱，那條規則就變成死碼，而新的 `.card-header` 沒有拿到該有的樣式。這類「HTML 改了、CSS 沒跟上」的漏改，畫面上表現為某一塊顏色或間距怪怪的，很難直覺聯想到是升級造成的。
 
 命中結果照 `02-modernize.md` 開頭那條原則處理：**掃描是第一輪篩選，不是驗收證明**，命中的每一處都要看過再決定是不是真的要改（專案自訂的 `.well-known-section` 這種名字會被上面的 `well` 命中）。
+
+上面三道 grep 找的是「舊寫法有沒有殘留」。反方向的問題——「哪些 class 在舊版有定義、BS5 沒有、而專案自己的 CSS 也沒接手」——可以用腳本自動比對，它會把兩份 Bootstrap 原始碼對起來看，比人工核對表格齊：
+
+```bash
+git show HEAD:vendor/bootstrap/css/bootstrap.css > /tmp/bs4.css
+node .claude/skills/legacy-site-modernization/scripts/audit-bs4-classes.js <專案目錄> /tmp/bs4.css
+```
+
+**它只驗證 class 是否存在，抓不到同名但行為改變**——那一批在 [`08-bs5-behavior-traps.md`](08-bs5-behavior-traps.md)。腳本只讀扁平結構（`<專案目錄>/*.html` 不遞迴、`<專案目錄>/css/*.css`），路徑對不上的專案不會報錯、只會回報乾淨，跑之前先確認。
 
 ### 5-2 執行期驗證
 
