@@ -1,6 +1,6 @@
 # Agent Skills 集合
 
-Agent Skills 集合，主題是**舊站整體版更（Legacy Site Modernization）**：把「接手一個舊版純靜態網站，要整理到能放心維護、能通過資安檢測」這件事拆成 10 個有順序依賴的節點——除去廢 code、共用元件化、CSS 轉 SCSS、語意化修正、CDN 化、Bootstrap 升級到 5.3.7、移除 jQuery 改寫成原生 JS、第三方套件升級、修復弱點掃描發現項。
+Agent Skills 集合，主題是**舊站整體版更（Legacy Site Modernization）**：把「接手一個舊版純靜態網站，要整理到能放心維護、能通過資安檢測」這件事拆成 10 個有順序依賴的節點——除去廢 code、共用元件化、按鈕語意化、CSS 轉 SCSS、CDN 化、Bootstrap 升級到 5.3.7、移除 jQuery 改寫成原生 JS、第三方套件升級、修復弱點掃描發現項。
 
 **正本只有一份，放在 `.claude/skills/`。** 檔案格式遵循 [Agent Skills](https://agentskills.io) 開放標準（`SKILL.md` ＋ `name` / `description` 前綴資料 ＋ 漸進式載入），Claude Code、Codex、GitHub Copilot、Antigravity 等支援同一標準的工具都能直接使用，差別只在各家掃描的資料夾位置不同，對照表見下方〈安裝〉。
 
@@ -8,7 +8,7 @@ Agent Skills 集合，主題是**舊站整體版更（Legacy Site Modernization�
 
 | Skill | 做什麼 | 什麼時候會被觸發 |
 |---|---|---|
-| [legacy-site-modernization](.claude/skills/legacy-site-modernization/) | 純靜態舊網站（無 npm/build tool）的 10 節點整體版更流程：除去廢 code → 共用元件化 → CSS 轉 SCSS → 按鈕語意化 → CDN 化 → Bootstrap 升級（BS3/BS4 → 5.3.7）→ 移除 jQuery → 升級第三方套件 → 修復弱點掃描發現項，並訂出「畫面樣式不得改變」的硬約束與三層驗收法 | 提到「整體版更」「除去廢code」「清一下舊專案」「接手舊站要不要重構」「套件太舊要升級」「Bootstrap 3 升 5」「BS4 升 BS5」「把 jQuery 拿掉」「改成原生 JS」，或升級**之後**才回報「版面跑掉」「CSS 吃不到」「modal 打不開」「手風琴箭頭不見」 |
+| [legacy-site-modernization](.claude/skills/legacy-site-modernization/) | 純靜態舊網站（無 npm/build tool）的 10 節點整體版更流程：除去廢 code → 共用元件化 → 按鈕語意化 → CSS 轉 SCSS → CDN 化 → Bootstrap 升級（BS3/BS4 → 5.3.7）→ 移除 jQuery → 升級第三方套件 → 修復弱點掃描發現項，並訂出「畫面樣式不得改變」的硬約束與三層驗收法 | 提到「整體版更」「除去廢code」「清一下舊專案」「接手舊站要不要重構」「套件太舊要升級」「Bootstrap 3 升 5」「BS4 升 BS5」「把 jQuery 拿掉」「改成原生 JS」，或升級**之後**才回報「版面跑掉」「CSS 吃不到」「modal 打不開」「手風琴箭頭不見」 |
 
 有 `evals/evals.json` 的 skill 附了測試題組，可以用來驗證改寫後行為沒有退步（本 repo 目前尚未附）。
 
@@ -77,9 +77,11 @@ mkdir -p /path/to/專案/.agents/skills && cp -r .claude/skills/* /path/to/專�
 
 這支 skill 假設起始狀態是「純靜態 HTML/CSS/JS，沒有 npm、沒有 build tool、沒有前端框架」。如果專案其實已經有 `package.json`、Vue/React、或既有的 build pipeline，先停下來跟使用者確認技術棧再套用——細節見 `SKILL.md` 的〈適用範圍〉一節。
 
-節點 7、8、9（Bootstrap 升級、移除 jQuery、套件升級）有一條硬約束：**畫面樣式不得改變**，驗收要走「靜態掃描 → 幾何不變量 → 逐屬性與逐像素」三層，方法與腳本在 `references/07-visual-regression-verification.md`、`scripts/compare-screenshots.py`、`scripts/dump-computed-style.py`。
+節點 6 之後（CDN 化、Bootstrap 升級、移除 jQuery、套件升級、修復弱掃發現項，也就是節點 6～10）全部適用一條硬約束：**畫面樣式不得改變**，驗收要走「靜態掃描 → 幾何不變量 → 逐屬性與逐像素」三層，方法與腳本在 `references/07-visual-regression-verification.md`、`scripts/compare-screenshots.py`、`scripts/dump-computed-style.py`。
 
-節點 7（Bootstrap 升級）底下有**兩條可選路線**，在 `references/04-bootstrap-upgrade.md` 步驟 1 決定，不要邊做邊換：
+升級**之後**才出現的「版面跑掉」「CSS 吃不到」「modal 打不開」「手風琴箭頭不見」，根因多半不是 class 改錯，而是同名 class 在 BS5 的預設值變了——這類差異兩版的 class 名稱都在，靜態掃描一定通過。八項實際案例與各自的修法（含「該修在相容層還是專案自己的 CSS」的判準）收在 `references/08-bs5-behavior-traps.md`。
+
+節點 7（Bootstrap 升級）在 `references/04-bootstrap-upgrade.md` 步驟 1 要先從三個策略選項裡挑一個：原地升級、只保留 grid 與 utility 並把元件區塊重切、或分批升級。選了**分批**（選項 3）之後還有一個岔路，**兩條路對同一段 HTML 給的是相反的指示**，同樣在步驟 1 決定，不要邊做邊換：
 
 - **改 markup**——逐處把舊 class 換成 BS5 寫法。留下乾淨的 BS5 程式碼，但改動分散在每一頁。
 - **補相容層**——utility class 一律不動，用一支 CSS 把 BS5 移除掉的定義補回來。改動集中，適合頁數多又還沒做共用區抽取的站；做法見 `references/09-bs4-compat-layer.md`，起手樣板在 `assets/bs4-compat.css`。**BS3 起點只能用它的一半**，因為 navbar、`.panel` → `.card`、表單結構是 DOM 重寫，補 CSS 補不出來。
