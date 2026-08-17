@@ -1,6 +1,6 @@
 ---
 name: legacy-site-modernization
-description: 舊版靜態網站（純 HTML/CSS/JS，無 npm/build tool）的整體改版健檢流程：除去廢 code、共用元件化、CSS 轉 SCSS、語意化修正、CDN 化、Bootstrap 升級（起點可能是 BS3 或 BS4，終點都是 5.3.7）、移除 jQuery 改寫成原生 JS、第三方套件升級。當使用者說「整體版更」「除去廢code」「清一下舊專案」「接手舊站要不要重構」「套件太舊要升級」「Bootstrap 3 升 5」「BS4 升 BS5」「把 jQuery 拿掉」「改成原生 JS」時一律使用，並主動照完整節點清單走過一輪，不要只做使用者明講的單一節點就結束——這些節點彼此有依賴順序，跳著做會讓後面的節點誤判死碼、誤刪還在用的東西。
+description: 舊版靜態網站（純 HTML/CSS/JS，無 npm/build tool）的整體改版健檢流程：除去廢 code、共用元件化、CSS 轉 SCSS、語意化修正、CDN 化、Bootstrap 升級（起點可能是 BS3 或 BS4，終點都是 5.3.7）、移除 jQuery 改寫成原生 JS、第三方套件升級。當使用者說「整體版更」「除去廢code」「清一下舊專案」「接手舊站要不要重構」「套件太舊要升級」「Bootstrap 3 升 5」「BS4 升 BS5」「把 jQuery 拿掉」「改成原生 JS」「bootstrap 5.3.7」時一律使用，並主動照完整節點清單走過一輪，不要只做使用者明講的單一節點就結束——這些節點彼此有依賴順序，跳著做會讓後面的節點誤判死碼、誤刪還在用的東西。升級**之後**才回報症狀時同樣使用，因為根因多半在這裡：「升級後版面跑掉」「CSS 吃不到」「modal 打不開」「手風琴箭頭不見」「間距忽然變大」「卡片內文貼齊邊框」「select 沒有箭頭」「捲動變得卡卡的」——這些都是 class 名稱沒變、但 Bootstrap 預設值改了造成的，見 `references/08-bs5-behavior-traps.md`。
 ---
 
 # 舊站整體版更
@@ -78,6 +78,13 @@ grep -rEon '<a[[:space:]][^>]*>' --include='*.html' . | grep '_blank' | grep -v 
 
 連帶的一條：**複雜的長正則（很多 `|` 分支、`\b` 邊界、跳脫字元混用）在不同 grep 實作下的行為不一樣**，拆成幾道簡單指令比湊一道漂亮的可靠。這個限制不適用於 agent 在 Claude Code 裡用內建的 Grep 工具（它的正則行為是固定的），但寫進文件要人貼到終端機的指令一律照這條。
 
+### Windows 環境的兩個實務限制
+
+舊站的 HTML／CSS 幾乎都含中文，而這兩件事在 Windows 上會安靜地把檔案弄壞：
+
+- **批次改含中文的檔案不要用 PowerShell 寫入。** `Set-Content`／`Add-Content` 預設走系統 ANSI 編碼（繁中環境是 cp950），寫回去的中文會變亂碼，而且不會有任何錯誤訊息。一律用 Node 或 Python 腳本明確以 UTF-8 讀寫（本 skill 附的腳本都是這樣寫的），或直接用編輯工具改。
+- **下載或覆蓋 vendor 檔案時遇到 `being used by another process`**，是編輯器或 Live Sass Compiler 鎖住了檔案，不是權限問題。先下載到暫存目錄再複製過去即可繞開。
+
 ## 各節點詳細指引
 
 節點內容拆到 `references/`，用到哪個節點就讀對應那份，不要一次全部載入：
@@ -91,12 +98,29 @@ grep -rEon '<a[[:space:]][^>]*>' --include='*.html' . | grep '_blank' | grep -v 
 - [`references/07-visual-regression-verification.md`](references/07-visual-regression-verification.md) — **跨節點（6～10）的視覺回歸驗收方法**：怎麼建立可並排比對的「升級前」環境、三層驗收的順序、量測本身的五個陷阱（整頁截圖的擷取假象、字型就緒、凍結輪播、屬性清單要含 width、可見性影響量值）、判讀差異的順序、掃描指令要先自我驗證。**只要這次的約束是「畫面不能變」就一定要讀**
 - [`references/08-bs5-behavior-traps.md`](references/08-bs5-behavior-traps.md) — 節點 7 附章（**同名 class 的行為改變，元件層級**）：class 名稱兩版都在、靜態掃描一定通過、但預設值改了的八項（`.form-control` 移除固定 height、`.col-*` 失去 `position: relative`、`textarea` 新增 min-height 的權重問題、元件 `--bs-*` 變數蓋掉繼承色、`select` 因 `appearance: none` 失去箭頭、`scroll-behavior: smooth` 與 jQuery 捲動動畫打架、`.card-body` padding 因變數作用域**歸零**、`:root` 變數加 `--bs-` 前綴）。附「這一項該修在覆寫層還是專案自己的 CSS」的判準。**跑完 04 的 4-7 之後接著讀這一份**
 
-附帶的工具（都需要 playwright，裝在暫存的 venv，不要動專案的 `package.json`）：
+- [`references/09-bs4-compat-layer.md`](references/09-bs4-compat-layer.md) — 節點 7 附章（**相容層策略**）：不動 utility class、改用一支 CSS 把 BS5 移除掉的定義補回來的低風險路線。含什麼時候該選它（04 步驟 1 選項 3 的執行手法之一）、它與 parity 覆寫層的分工、盤點指令、四支稽核腳本的用法與界限、`assets/bs4-compat.css` 樣板的刪減方式、`.form-row` 的 gutter 跑版、版本號破快取、相容層的退場路徑。**BS3 起點只能用它的一半**（navbar／`.panel`→`.card`／表單結構是 DOM 重寫，補 CSS 補不出來）
+
+### 附帶的工具
+
+**視覺回歸量測（需要 playwright，裝在暫存的 venv，不要動專案的 `package.json`）：**
 
 - [`scripts/dump-computed-style.py`](scripts/dump-computed-style.py) — 傾印瀏覽器實際算出來的樣式並比對前後差異，回答「變的是**哪一個屬性**、從什麼變成什麼」。也用來在動手前找出「專案的覆寫其實沒生效」這類既有 bug（判讀見 `references/04-bootstrap-upgrade.md` 的「先確認舊版套件現在到底蓋掉了什麼」）。
 - [`scripts/compare-screenshots.py`](scripts/compare-screenshots.py) — 同時開「升級前」與「升級後」兩台本機伺服器逐段捲動比對，回答「**哪一塊**、多大範圍變了」，並一併回報頁面總高與水平溢出量這兩個不變量。
 
 兩支要搭配著用：只做像素比對會卡在「知道不對但不知道改哪裡」，只做屬性比對會漏掉版面位移這種不歸屬於單一元素的變化。
+
+**Bootstrap 升級稽核（只需要 Node，不需要安裝任何東西）：**
+
+- [`scripts/migrate-data-attrs.js`](scripts/migrate-data-attrs.js) — 批次把 `data-*` 改成 `data-bs-*`，HTML 與 CSS 一起改。會遞迴子資料夾、跳過 `vendor/`。先跑 `--dry`。
+- [`scripts/audit-bs4-classes.js`](scripts/audit-bs4-classes.js) — 找出「HTML 使用中 × 舊版有定義 × BS5 沒有 × 自家 CSS 未接手」的漏網 class。**只驗證 class 是否存在。**
+- [`scripts/audit-behavior-changes.js`](scripts/audit-behavior-changes.js) — 掃 `08-bs5-behavior-traps.md` 的第 1、2、3、5、6、8 項與「`a` 預設有底線」。
+- [`scripts/audit-bs5-component-vars.js`](scripts/audit-bs5-component-vars.js) — 掃該章第 4 項（元件 `--bs-*` 變數蓋掉繼承色），只比對顏色類變數。
+
+**三支 `audit-*.js` 假設扁平結構**（只讀 `<專案目錄>/*.html` 不遞迴、`<專案目錄>/css/*.css`），路徑對不上的專案不會報錯、只會回報乾淨——照上面「回報 0 筆的指令，可能是指令本身壞了」那條，跑之前先確認路徑。該章第 7、9 項兩支腳本都掃不到，只能人工。
+
+附帶的樣板：
+
+- [`assets/bs4-compat.css`](assets/bs4-compat.css) — 相容層起手樣板，數值取自 BS 4.6.2。**用刪的不要用加的**，用法見 `references/09-bs4-compat-layer.md`。
 
 ## 搬到下一個專案時要先確認的事
 
