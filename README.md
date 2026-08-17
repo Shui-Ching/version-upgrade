@@ -79,7 +79,7 @@ mkdir -p /path/to/專案/.agents/skills && cp -r .claude/skills/* /path/to/專�
 
 節點 6 之後（CDN 化、Bootstrap 升級、移除 jQuery、套件升級、修復弱掃發現項，也就是節點 6～10）全部適用一條硬約束：**畫面樣式不得改變**，驗收要走「靜態掃描 → 幾何不變量 → 逐屬性與逐像素」三層，方法與腳本在 `references/07-visual-regression-verification.md`、`scripts/compare-screenshots.py`、`scripts/dump-computed-style.py`。
 
-升級**之後**才出現的「版面跑掉」「CSS 吃不到」「modal 打不開」「手風琴箭頭不見」，根因多半不是 class 改錯，而是同名 class 在 BS5 的預設值變了——這類差異兩版的 class 名稱都在，靜態掃描一定通過。八項實際案例與各自的修法（含「該修在相容層還是專案自己的 CSS」的判準）收在 `references/08-bs5-behavior-traps.md`。
+升級**之後**才出現的「版面跑掉」「CSS 吃不到」「modal 打不開」「手風琴箭頭不見」，根因多半不是 class 改錯，而是同名 class 在 BS5 的預設值變了——這類差異兩版的 class 名稱都在，靜態掃描一定通過。九項實際案例與各自的修法（含「該修在相容層還是專案自己的 CSS」的判準）收在 `references/08-bs5-behavior-traps.md`。
 
 節點 7（Bootstrap 升級）在 `references/04-bootstrap-upgrade.md` 步驟 1 要先從三個策略選項裡挑一個：原地升級、只保留 grid 與 utility 並把元件區塊重切、或分批升級。選了**分批**（選項 3）之後還有一個岔路，**兩條路對同一段 HTML 給的是相反的指示**，同樣在步驟 1 決定，不要邊做邊換：
 

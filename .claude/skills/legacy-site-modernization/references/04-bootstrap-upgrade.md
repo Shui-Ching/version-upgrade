@@ -22,7 +22,7 @@
 - [步驟 5：驗收](#步驟-5驗收)
 
 另見 [`08-bs5-behavior-traps.md`](08-bs5-behavior-traps.md)：**同名 class 的行為改變（元件層級）**——
-class 名稱兩版都在、掃描一定通過、但預設值改了的八項。本章的 4-7 是格線與容器層級的同類問題，
+class 名稱兩版都在、掃描一定通過、但預設值改了的九項。本章的 4-7 是格線與容器層級的同類問題，
 兩章要一起查。
 
 ---
@@ -469,7 +469,7 @@ BS3 的 navbar 是 `.navbar-default > .navbar-header + .collapse.navbar-collapse
 
 第 4 項不要用 `.row > * { width: auto }` 一次解決——那條規則的權重會蓋掉各級 `.col-*` 的寬度，整個格線就壞了。針對實際有自訂外距的那幾個元素個別處理，並靠[水平溢出量](07-visual-regression-verification.md#三層驗收照這個順序看)確認還有沒有漏網。
 
-**這一節處理完之後接著查 [`08-bs5-behavior-traps.md`](08-bs5-behavior-traps.md)。** 本節是格線與容器層級（後果是整頁位移），08 是同一類問題的**元件層級**版本（`.form-control` 的 height、`.col-*` 的 `position`、`.card-body` 的 padding、元件的 `--bs-*` 變數等八項），後果通常侷限在某一類元件但同樣掃描不到。順序是先本節、後 08——整頁都在位移的時候，逐個元件去查是浪費時間。
+**這一節處理完之後接著查 [`08-bs5-behavior-traps.md`](08-bs5-behavior-traps.md)。** 本節是格線與容器層級（後果是整頁位移），08 是同一類問題的**元件層級**版本（`.form-control` 的 height、`.col-*` 的 `position`、`.card-body` 的 padding、元件的 `--bs-*` 變數、專案舊覆寫被特異度反超等九項），後果通常侷限在某一類元件但同樣掃描不到。順序是先本節、後 08——整頁都在位移的時候，逐個元件去查是浪費時間。
 
 ### 4-8 Less → Sass、px → rem
 
