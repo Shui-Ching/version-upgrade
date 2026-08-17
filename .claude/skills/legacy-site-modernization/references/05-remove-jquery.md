@@ -69,6 +69,45 @@ grep -rEn '<script[^>]*src="[^"]*jquery[^"]*"' --include='*.html' -i . | grep -v
 3. **有沒有現代替代品？** 例如 jQuery 輪播換成 Swiper、jQuery 燈箱換成 GLightbox。但**替代品的 DOM 結構、class 命名、選項名稱通常整組不同，等於這個功能重做**，而且視覺與互動細節會變。這是產品決策：先問使用者這個功能還要不要、能接受多大的外觀變動，不要自己選一套換下去。
 4. **以上都不成立**（套件沒有替代品、功能又必須留）→ 這一輪就無法完全移除 jQuery。**這是可以接受的結論，不要為了「達成目標」硬拆。** 正確做法是把第二類改寫完（減少 jQuery 的使用面），把 jQuery 保留為單一套件的依賴，在收尾報告裡明講「因為 X 套件還吃 jQuery，jQuery 保留；要完全移除需要先處理 X」，讓使用者決定要不要為此另開一輪。
 
+### 走到第 3 條時的汰換對照
+
+這幾組是實務上最常遇到的，替代品都沒有 jQuery 相依。列在這裡是為了**估工作量**，不是叫你直接換——選哪一套仍然是上面第 3 條講的產品決策：
+
+| 舊套件 | 替代 | 要注意什麼 |
+|---|---|---|
+| slick | Swiper | DOM 結構要改：多一層 `swiper-wrapper`／`swiper-slide` 包裹 |
+| magnific-popup／lightcase／fancybox | GLightbox | 連結掛 `.glightbox` 加 `data-gallery` |
+| bootstrap-datepicker | flatpickr | 日期格式與 locale 設定要重新對過 |
+
+引入 CDN 一律**鎖定版本並補 SRI**，流程照節點 6（確認路徑存在 → 下載實檔 → 算 sha384），不要沿用舊 hash：
+
+```html
+<script src="https://cdn.jsdelivr.net/npm/swiper@14.0.6/swiper-bundle.min.js"
+        integrity="sha384-..." crossorigin="anonymous"></script>
+```
+
+**汰換是獨立工作，不要和 Bootstrap 升級（節點 7）混在同一筆 commit**——兩者都會動版面，出問題時分不出是誰造成的。這條與 SKILL.md 的「節點與節點之間不要疊在一個 commit 裡」是同一個理由。
+
+### 移除套件之後，務必掃一次殘留呼叫
+
+這是汰換最容易出事的地方，而且症狀完全不指向根因。
+
+套件刪掉了，但 `theme.js` 裡還留著一段 `.slick()` 呼叫。執行到那一行時 jQuery 物件上沒有這個方法，直接丟 `TypeError`，**連帶讓同一支檔案後面所有 IIFE 都不執行**。
+
+```bash
+# 換成實際移除的套件方法名
+grep -rEn '[.](slick|magnificPopup|lightcase|fancybox)[[:space:]]*[(]' --include='*.html' --include='*.js' .
+```
+
+兩件事讓它特別難查：
+
+- **症狀是「一堆不相干的功能同時壞掉」**，因為壞的是同一支檔案裡排在後面的程式碼，跟被刪掉的套件沒有任何表面關聯。
+- **殘留呼叫常出現在死碼裡**——對應的 HTML 早就不存在了（例如全站已無 `.bar-button` 的側邊欄），畫面上看不到，所以盤點時最容易被漏掉。
+
+失效的機制與下一節「混裝檔案」講的是同一件事（未捕捉的例外中斷同一支 script 剩下的執行），差別只在觸發原因：那邊是 jQuery 被拿掉造成 `ReferenceError`，這邊是套件被拿掉造成 `TypeError`。
+
+找到之後**直接刪整段，不要只註解掉**——註解掉的死碼會在下一輪盤點時再被當成「還在用」看一次。
+
 ### 還有一種容易漏掉的情況：套件檔案是「混裝」的
 
 上面四點都假設一個檔案（或一個 `<script>` 標籤）對應一個套件，是全有全無的判斷。但舊站常見的 `helper-plugins.js`、`vendor.js` 這類「把一堆外掛打包成單一檔案」的產物，實際上可能是**吃 jQuery 的外掛跟不吃 jQuery 的原生函式庫，用好幾段未保護的頂層陳述句混在同一支檔案裡**——例如一個檔案前段是 `(function($){ ... })(jQuery)` 包起來的外掛，後段是完全獨立、不依賴任何函式庫的原生工具（背景色偵測、圖片 lazy load 之類）。
