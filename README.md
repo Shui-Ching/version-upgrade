@@ -8,7 +8,7 @@ Agent Skills 集合，主題是**舊站整體版更（Legacy Site Modernization�
 
 | Skill | 做什麼 | 什麼時候會被觸發 |
 |---|---|---|
-| [legacy-site-modernization](.claude/skills/legacy-site-modernization/) | 純靜態舊網站（無 npm/build tool）的 10 節點整體版更流程：除去廢 code → 共用元件化 → CSS 轉 SCSS → 按鈕語意化 → CDN 化 → Bootstrap 升級（BS3/BS4 → 5.3.7）→ 移除 jQuery → 升級第三方套件 → 修復弱點掃描發現項，並訂出「畫面樣式不得改變」的硬約束與三層驗收法 | 提到「整體版更」「除去廢code」「清一下舊專案」「接手舊站要不要重構」「套件太舊要升級」「Bootstrap 3 升 5」「BS4 升 BS5」「把 jQuery 拿掉」「改成原生 JS」 |
+| [legacy-site-modernization](.claude/skills/legacy-site-modernization/) | 純靜態舊網站（無 npm/build tool）的 10 節點整體版更流程：除去廢 code → 共用元件化 → CSS 轉 SCSS → 按鈕語意化 → CDN 化 → Bootstrap 升級（BS3/BS4 → 5.3.7）→ 移除 jQuery → 升級第三方套件 → 修復弱點掃描發現項，並訂出「畫面樣式不得改變」的硬約束與三層驗收法 | 提到「整體版更」「除去廢code」「清一下舊專案」「接手舊站要不要重構」「套件太舊要升級」「Bootstrap 3 升 5」「BS4 升 BS5」「把 jQuery 拿掉」「改成原生 JS」，或升級**之後**才回報「版面跑掉」「CSS 吃不到」「modal 打不開」「手風琴箭頭不見」 |
 
 有 `evals/evals.json` 的 skill 附了測試題組，可以用來驗證改寫後行為沒有退步（本 repo 目前尚未附）。
 
@@ -78,6 +78,13 @@ mkdir -p /path/to/專案/.agents/skills && cp -r .claude/skills/* /path/to/專�
 這支 skill 假設起始狀態是「純靜態 HTML/CSS/JS，沒有 npm、沒有 build tool、沒有前端框架」。如果專案其實已經有 `package.json`、Vue/React、或既有的 build pipeline，先停下來跟使用者確認技術棧再套用——細節見 `SKILL.md` 的〈適用範圍〉一節。
 
 節點 7、8、9（Bootstrap 升級、移除 jQuery、套件升級）有一條硬約束：**畫面樣式不得改變**，驗收要走「靜態掃描 → 幾何不變量 → 逐屬性與逐像素」三層，方法與腳本在 `references/07-visual-regression-verification.md`、`scripts/compare-screenshots.py`、`scripts/dump-computed-style.py`。
+
+節點 7（Bootstrap 升級）底下有**兩條可選路線**，在 `references/04-bootstrap-upgrade.md` 步驟 1 決定，不要邊做邊換：
+
+- **改 markup**——逐處把舊 class 換成 BS5 寫法。留下乾淨的 BS5 程式碼，但改動分散在每一頁。
+- **補相容層**——utility class 一律不動，用一支 CSS 把 BS5 移除掉的定義補回來。改動集中，適合頁數多又還沒做共用區抽取的站；做法見 `references/09-bs4-compat-layer.md`，起手樣板在 `assets/bs4-compat.css`。**BS3 起點只能用它的一半**，因為 navbar、`.panel` → `.card`、表單結構是 DOM 重寫，補 CSS 補不出來。
+
+這一節點另附四支只需要 Node 的稽核腳本（`migrate-data-attrs.js`、`audit-bs4-classes.js`、`audit-behavior-changes.js`、`audit-bs5-component-vars.js`）。**它們是啟發式篩選不是驗收證明**，而且三支 `audit-*.js` 只讀扁平結構，專案路徑對不上時會安靜地回報乾淨——用之前先讀 SKILL.md 的〈附帶的工具〉。
 
 ## 授權
 
