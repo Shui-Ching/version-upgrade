@@ -37,6 +37,14 @@ description: 舊版靜態網站（純 HTML/CSS/JS，無 npm/build tool）的整�
 
 每個節點各自對應一個 git commit，commit message 用中文描述做了什麼（沿用 `掃出沒引用的css、js 並刪除(套件)` 這種寫法），方便之後回退到任一節點之前的狀態。**節點與節點之間不要疊在一個 commit 裡**——尤其節點 4、5、7 三個都會動到 CSS/HTML，混在一起除錯時分不出是哪個改動造成的跑版。
 
+### 收尾：把節點整理成交付文件（不是第 12 個節點）
+
+節點全部走完之後還有一個動作，但它不算節點——它不改任何一行程式碼、在這個 repo 裡也不產生 commit：**把這一輪的 commit 回頭整理成「工作項目 × Commit 對照表」**，交給客戶、PM 與接手的工程師。做法見同層的 `commit-delivery-report` skill（`.claude/skills/commit-delivery-report/`），這裡不重複寫。
+
+它跟這份清單的關係是：**節點清單就是那份報告的骨架**——每個節點一節，順序照節點編號不照 commit 時間，所以那支 skill 開頭「先向使用者要工作項目清單」的步驟在這裡已經有答案了。上面「每個節點各自對應一個 git commit」這條慣例，也正是讓 commit 歸類幾乎機械化的原因；沒照著做的話，整理報告時會分不出哪筆 commit 屬於哪個節點。
+
+報告的重點不在「改了什麼」，而在**「工程端要跟著做什麼、不做會怎樣」**——例如節點 4 改完之後，事件綁定的 selector 變了但畫面完全看不出差別，切版稿上也測不出來。那支 skill 有一張各節點典型配合事項與 ⚠️ 判準的對照表可以直接用。
+
 ## 硬約束：畫面樣式不得改變（節點 6 之後全部適用）
 
 多數舊站版更的實際來由，是「要通過資安檢測、要升套件版本」，而不是「要改版面」。這種情境下**畫面維持原樣是驗收條件，不是加分項**——使用者端不會有人為版面變動背書，任何一處跑版都會被當成這次改動造成的迴歸。
@@ -104,6 +112,8 @@ grep -rEon '<a[[:space:]][^>]*>' --include='*.html' . | grep '_blank' | grep -v 
 - [`references/08-bs5-behavior-traps.md`](references/08-bs5-behavior-traps.md) — 節點 7 附章（**同名 class 的行為改變，元件層級**）：class 名稱兩版都在、靜態掃描一定通過、但預設值改了的九項（`.form-control` 移除固定 height、`.col-*` 失去 `position: relative`、`textarea` 新增 min-height 的權重問題、元件 `--bs-*` 變數蓋掉繼承色、`select` 因 `appearance: none` 失去箭頭、`scroll-behavior: smooth` 與 jQuery 捲動動畫打架、`.card-body` padding 因變數作用域**歸零**、`:root` 變數加 `--bs-` 前綴、**專案原本靠後代選擇器寫的覆寫被 BS5 元件的多層 class 選擇器特異度反超而失效**）。附「這一項該修在覆寫層還是專案自己的 CSS」的判準。**最後那一項 grep 與稽核腳本都抓不到**，只能用瀏覽器 devtools 的 Computed 面板逐條核對。**跑完 04 的 4-7 之後接著讀這一份**
 
 - 節點 11 專章（加上「不支援 IE」提示）——做法拆到獨立的 `legacy-browser-notice` skill（同層 `.claude/skills/legacy-browser-notice/`）：UA 偵測寫法、共用 js 掛載位置、CSS 用 `var()` 雙寫 fallback 的理由、z-index 與 iOS safe-area 注意事項、破快取版本號規則都在裡面，不重複寫在這份文件。預設警語文案是「為提供更佳的瀏覽體驗，本站不支援 IE 瀏覽器，建議使用 Microsoft Edge、Chrome 或 Firefox 開啟，謝謝。」，電商類站台可視情境改用強調交易安全的版本
+- 收尾交付（走完全部節點之後）——做法拆到獨立的 `commit-delivery-report` skill（同層 `.claude/skills/commit-delivery-report/`）：以節點清單當骨架的報告結構、⚠️ 的判準、破快取 commit 的摺疊規則、「未歸屬 commit」的完整性核對、各節點典型的工程端配合事項，以及貼進 ClickUp／Notion 這類看板工具時的做法。不重複寫在這份文件
+
 - [`references/09-bs4-compat-layer.md`](references/09-bs4-compat-layer.md) — 節點 7 附章（**相容層策略**）：不動 utility class、改用一支 CSS 把 BS5 移除掉的定義補回來的低風險路線。含什麼時候該選它（04 步驟 1 選項 3 的執行手法之一）、它與 parity 覆寫層的分工、盤點指令、四支稽核腳本的用法與界限、`assets/bs4-compat.css` 樣板的刪減方式、`.form-row` 的 gutter 跑版、版本號破快取、相容層的退場路徑。**BS3 起點只能用它的一半**（navbar／`.panel`→`.card`／表單結構是 DOM 重寫，補 CSS 補不出來）
 
 ### 附帶的工具
@@ -151,3 +161,4 @@ grep -rEon '<a[[:space:]][^>]*>' --include='*.html' . | grep '_blank' | grep -v 
 4. **有沒有掃描報告、是誰出的**——節點 10 要對著實際的弱點掃描／原始碼掃描報告做，不是憑空想像可能有哪些問題。先確認：報告在不在手上、用哪個工具掃的（不同工具的規則名稱與誤報型態差很多）、有沒有複掃的時間點與次數限制。**同時要確認你對主機設定有沒有權限**——弱掃有一大半的發現項修在伺服器層（安全標頭、目錄列表、TLS），沒有權限的話那些項目只能整理成清單交給主機管理者，這會影響整個節點的排程與交付形式。
 5. **是否已有 SCSS/建置流程**——如果專案完全沒有建置工具，節點 5 預設是「手動編譯或請使用者自己跑 sass CLI」；若使用者願意額外導入 npm + sass（已在實際專案跑過一次完整配方），`references/02-modernize.md` 節點 5 底下的「若使用者同意導入 npm + sass 建置工具」一節有完整可沿用的資料夾結構、`@use` 順序陷阱、資源路徑重算方法與收尾檢查清單——但仍然要先問使用者要不要做，這改變了專案「純靜態、雙擊即用」的性質，不能因為已經有配方就跳過詢問直接加。
 6. **節點 11 的警語文案要不要客製**——`legacy-browser-notice` skill 內建的預設文案適用大部分站台；電商類站台（有結帳流程）常見會改強調交易安全的版本，套用前跟使用者確認要用哪一版措辭。
+7. **收尾的交付報告要交到哪裡、對照誰的驗收清單**——問清楚兩件事：報告最後要貼進哪個工具（ClickUp 任務／文件、Notion 頁、Markdown 檔），以及對方手上有沒有一份自己的驗收清單或報價單項目。有的話，節點名稱與那份清單的用語通常對不起來，要在報告裡多一欄做對照，不能直接拿節點名稱當客戶的驗收項目。做法見 `commit-delivery-report` skill。

@@ -1,6 +1,6 @@
 # Agent Skills 集合
 
-Agent Skills 集合，主題是**舊站整體版更（Legacy Site Modernization）**：把「接手一個舊版純靜態網站，要整理到能放心維護、能通過資安檢測」這件事拆成 11 個節點。前 10 個彼此有順序依賴——移除沒用的檔案 → 掃出沒引用的 css/js → 挖出共用區 → 按鈕語意化 → CSS 轉 SCSS → CDN 化 → Bootstrap 升級到 5.3.7 → 移除 jQuery 改寫成原生 JS → 第三方套件升級 → 修復弱點掃描發現項；節點 11（加上「不支援 IE」提示）只依賴節點 7，做法拆在另一支 skill。
+Agent Skills 集合，主題是**舊站整體版更（Legacy Site Modernization）**：把「接手一個舊版純靜態網站，要整理到能放心維護、能通過資安檢測」這件事拆成 11 個節點。前 10 個彼此有順序依賴——移除沒用的檔案 → 掃出沒引用的 css/js → 挖出共用區 → 按鈕語意化 → CSS 轉 SCSS → CDN 化 → Bootstrap 升級到 5.3.7 → 移除 jQuery 改寫成原生 JS → 第三方套件升級 → 修復弱點掃描發現項；節點 11（加上「不支援 IE」提示）只依賴節點 7，做法拆在另一支 skill。節點全部走完之後還有一個收尾動作——把這一輪的 commit 整理成交付給客戶、PM 與接手工程師看的「工作項目 × Commit 對照表」，做法拆在第三支 skill。
 
 **正本只有一份，放在 `.claude/skills/`。** 檔案格式遵循 [Agent Skills](https://agentskills.io) 開放標準（`SKILL.md` ＋ `name` / `description` 前綴資料 ＋ 漸進式載入），Claude Code、Codex、GitHub Copilot、Antigravity 等支援同一標準的工具都能直接使用，差別只在各家掃描的資料夾位置不同，對照表見下方〈安裝〉。
 
@@ -10,8 +10,9 @@ Agent Skills 集合，主題是**舊站整體版更（Legacy Site Modernization�
 |---|---|---|
 | [legacy-site-modernization](.claude/skills/legacy-site-modernization/) | 純靜態舊網站（無 npm/build tool）的 11 節點整體版更流程：除去廢 code → 共用元件化 → 按鈕語意化 → CSS 轉 SCSS → CDN 化 → Bootstrap 升級（BS3/BS4 → 5.3.7）→ 移除 jQuery → 升級第三方套件 → 修復弱點掃描發現項 → 加上「不支援 IE」提示，並訂出「畫面樣式不得改變」的硬約束與三層驗收法 | 提到「整體版更」「除去廢code」「清一下舊專案」「接手舊站要不要重構」「套件太舊要升級」「Bootstrap 3 升 5」「BS4 升 BS5」「把 jQuery 拿掉」「改成原生 JS」，或升級**之後**才回報「版面跑掉」「CSS 吃不到」「modal 打不開」「手風琴箭頭不見」 |
 | [legacy-browser-notice](.claude/skills/legacy-browser-notice/) | 節點 11 的做法：在靜態站加上「本站不支援 IE」提示列——UA 判斷、由共用 js 統一注入、CSS 每個顏色先寫靜態值再寫 `var()`（IE 遇到看不懂的值會整條宣告作廢）、z-index 與 iPhone 底部安全區、改完哪些檔案要更新版本號破快取 | 提到「加舊版瀏覽器提示」「IE 提示」「不支援 IE」「提醒使用者換瀏覽器」「IE 版面整個爛掉」「這個提示要全站共用」，或升級 BS5 後發現 IE 開起來是裸文字 |
+| [commit-delivery-report](.claude/skills/commit-delivery-report/) | 收尾交付的做法：把這一輪的 commit 回頭整理成「工作項目 × Commit 對照表」——以節點清單（而非 commit 時序）當骨架、每一列的重點放在「工程端須配合什麼、不做會怎樣」、⚠️ 的判準、破快取 commit 的摺疊規則、「未歸屬 commit」的完整性核對，以及貼進 ClickUp／Notion 這類看板工具的做法 | 提到「整理 commit 對照表」「工作項目對照表」「交付文件」「這段時間做了什麼整理給客戶／PM」「要交接給工程師，列一份清單」「版更做完了整理一份交付清單」「修改節點要貼到 ClickUp」 |
 
-**兩支要一起安裝。** `legacy-site-modernization` 的節點 11 只寫「做法見 `legacy-browser-notice`」，不重複寫做法；只裝前者的話，走到節點 11 會指向一支不存在的 skill。
+**三支要一起安裝。** `legacy-site-modernization` 的節點 11 只寫「做法見 `legacy-browser-notice`」、收尾交付只寫「做法見 `commit-delivery-report`」，都不重複寫做法；少裝任何一支，走到那一步會指向一支不存在的 skill，而且不會有錯誤訊息。
 
 ## 安裝
 
@@ -24,9 +25,9 @@ Agent Skills 集合，主題是**舊站整體版更（Legacy Site Modernization�
 
 步驟：
 1. 把 repo clone 到暫存資料夾，不要 clone 進專案目錄裡。
-2. 把 repo 內 .claude/skills/ 底下的「兩個」資料夾都整包複製到
-   （legacy-site-modernization 與 legacy-browser-notice，缺一不可，
-     前者的節點 11 會直接指向後者）
+2. 把 repo 內 .claude/skills/ 底下的「三個」資料夾都整包複製到
+   （legacy-site-modernization、legacy-browser-notice、commit-delivery-report，
+     三個缺一不可，第一支的節點 11 會直接指向第二支，收尾交付會指向第三支）
    「你這個工具」在專案層掃描 skill 的位置：
      Claude Code        → .claude/skills/
      OpenAI Codex       → .agents/skills/
@@ -35,7 +36,7 @@ Agent Skills 集合，主題是**舊站整體版更（Legacy Site Modernization�
    如果你不確定自己屬於哪一個，就 .claude/skills/ 和 .agents/skills/ 兩個位置
    各放一份，這樣所有工具都掃得到。
 3. 刪掉步驟 1 的暫存 clone。
-4. 回報：你把兩個資料夾分別複製到哪個路徑、各自的 SKILL.md 是否存在。
+4. 回報：你把三個資料夾分別複製到哪個路徑、各自的 SKILL.md 是否存在。
 
 注意：不要修改 skill 的內容，原封不動複製即可。
 裝完可能要重開一次工具，新的 skill 目錄才會被掃到。
@@ -45,7 +46,7 @@ Agent Skills 集合，主題是**舊站整體版更（Legacy Site Modernization�
 
 **想裝成全域（所有專案都生效）**：把步驟 2 的路徑換成 `~/.claude/skills/`、`~/.agents/skills/`、`~/.copilot/skills/`、`~/.gemini/config/skills/`（對應下表全域層那一欄）。
 
-**AI 沒有終端機權限**（例如只開了對話框、沒開 agent 模式）：改成自己下載 ZIP 解壓，把 `legacy-site-modernization` 與 `legacy-browser-notice` 兩個資料夾拖進下表對應位置，這一步不需要 AI。
+**AI 沒有終端機權限**（例如只開了對話框、沒開 agent 模式）：改成自己下載 ZIP 解壓，把 `legacy-site-modernization`、`legacy-browser-notice`、`commit-delivery-report` 三個資料夾拖進下表對應位置，這一步不需要 AI。
 
 ### 各工具掃描路徑
 
@@ -72,7 +73,7 @@ mkdir -p /path/to/專案/.agents/skills && cp -r .claude/skills/* /path/to/專�
 
 改寫本章開頭那段要貼給 AI 的提示詞時，這四點請保留：
 
-- **「兩個資料夾都要複製」**。AI 看到 repo 裡有兩支 skill，很容易只挑跟指令字面最相關的那一支裝。少裝 `legacy-browser-notice` 不會有任何錯誤訊息，要等到走完節點 7、進到節點 11 才會發現做法指向一支不存在的 skill。
+- **「三個資料夾都要複製」**。AI 看到 repo 裡有三支 skill，很容易只挑跟指令字面最相關的那一支裝。少裝的那支不會有任何錯誤訊息：漏掉 `legacy-browser-notice` 要等到走完節點 7、進到節點 11 才會發現做法指向一支不存在的 skill；漏掉 `commit-delivery-report` 要等到全部節點做完、要交報告時才會發現。
 - **「不要 clone 進專案目錄裡」**是最容易出事的一步。Codex 從當前目錄往上找到 repo 根目錄，**不會往下鑽子資料夾**，所以把整個 repo clone 成 `專案/skills/` 掃不到，還會在專案裡留下一個帶 `.git` 的外來 repo。
 - **「不確定就兩個位置都放」**是保險絲。skill 資料夾只是 markdown 加腳本，重複一份成本近乎零，可以避免「AI 猜錯自己是誰 → 裝了等於沒裝」這種最難除錯的狀況。
 - **「回報複製到哪」**讓人一眼看得出成功與否，不必自己翻資料夾。
@@ -91,6 +92,15 @@ mkdir -p /path/to/專案/.agents/skills && cp -r .claude/skills/* /path/to/專�
 接著就照它列出的節點順序一個一個做，每個節點做完各自 commit。**不要跳著做**：節點之間有依賴關係，例如先移除 jQuery 再升 Bootstrap，會分不清哪些 jQuery 呼叫是 Bootstrap 元件要的、哪些是頁面自己的邏輯。
 
 第二支 skill（`legacy-browser-notice`）不需要特別叫它，走到節點 11 會自己被帶出來；想單獨用的話，說「幫這個站加上不支援 IE 的提示」即可。
+
+節點全部做完之後，用第三支 skill（`commit-delivery-report`）產出交付文件，同樣不必記 skill 名稱，說下面這句就會被帶出來：
+
+```
+版更的節點都做完了，請照節點清單把這一輪的 commit 整理成工作項目對照表，
+我要貼到 ClickUp 給主管看。
+```
+
+它會先問你這一輪的**起點 commit**（不要用 `master..<分支>`，長壽的切版分支會撈進幾年前的無關 commit），然後照節點順序逐節列出 commit、影響範圍，以及每一項「工程端要跟著做什麼、不做會怎樣」。
 
 ## 使用前要注意的地方
 
