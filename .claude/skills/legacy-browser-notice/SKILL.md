@@ -94,9 +94,15 @@ IE 瀏覽器，建議使用 Microsoft Edge、Chrome 或 Firefox 開啟，謝謝�
 解法是同一個屬性寫兩次，靜態值在前、變數在後。現代瀏覽器後者覆蓋前者，
 IE 丟掉後者留下前者：
 
+下面這段的 `--p-focus-color` 是**佔位符，不是通用的變數名**——它來自寫出這段樣式的那個專案。
+套用時換成你專案自己的警示色／主色變數（例如 `--bs-danger`、`--brand-warning`），
+並把靜態值一併換成該變數實際算出來的顏色。照抄不換的話不會有錯誤訊息，
+只會得到「靜態值生效、`var()` 那幾行全部無效」的結果，現代瀏覽器上看起來就是顏色不對。
+
 ```scss
 /* 僅 IE 觸發。每個顏色都先寫靜態值再寫 color-mix：
-   IE 讀不懂 var()/color-mix 會整條作廢，沒有 fallback 就會變成裸文字。 */
+   IE 讀不懂 var()/color-mix 會整條作廢，沒有 fallback 就會變成裸文字。
+   --p-focus-color 是佔位符，換成專案自己的警示色變數。 */
 .legacy-browser-notice {
     position: fixed;
     left: 0;
@@ -145,8 +151,12 @@ IE 丟掉後者留下前者：
 
 1. **共用 js**：全站頁面的 `<script src="js/theme.js?20260818a">` 版本號要一起更新。
    ```bash
+   # *.html 只涵蓋當前目錄那一層；頁面散在子目錄的站要改成下面這行
    perl -pi -e 's{js/theme\.js\?[^"]*}{js/theme.js?20260818a}g' *.html
+   find . -name '*.html' -not -path './vendor/*' -exec perl -pi -e 's{js/theme\.js\?[^"]*}{js/theme.js?20260818a}g' {} +
    ```
+   改完用 `grep -rn 'theme\.js?' --include='*.html' .` 看一次，版本號應該全站一致；
+   還有舊值代表那幾頁沒被上面的路徑涵蓋到。
 2. **CSS**：新增了 `.legacy-browser-notice` 樣式，編譯產物也變了，
    同樣更新各頁的 `css/main.min.css?` 版本號。
 3. **include 片段**：如果提示列是寫在 `page-header.html` 這類被 fetch 進來的片段裡
@@ -163,11 +173,19 @@ User agent 換成 `Internet Explorer 8` 之類含 `MSIE`／`Trident` 的字串�
 提示列有沒有正確出現；確認完記得改回瀏覽器預設值。另外檢查：
 
 ```bash
-# 確認沒有殘留的逐頁 inline script
-grep -rln "legacy-browser-notice" *.html
+# 1. 確認沒有殘留的逐頁 inline script，應該沒有輸出。
+#    用 --include 而不是 *.html：後者只掃當前目錄那一層，子目錄裡的頁面會被漏掉。
+grep -rln "legacy-browser-notice" --include='*.html' .
 
-# 確認每個用到 var() 的顏色都有靜態 fallback（人工看一眼）
-grep -n -A1 "legacy-browser-notice" -A30 scss/_custom.scss
+# 2. 對照組：先用一個一定會命中的字串跑一次，確認上面那道指令的路徑與語法真的抓得到東西。
+#    路徑打錯時 grep 不會報錯，只會安靜地回報 0 筆——那跟「乾淨」長得一模一樣。
+grep -rln "<html" --include='*.html' . | head -3
+
+# 3. 確認提示列的每個顏色都有靜態 fallback（人工看一眼）。
+#    樣式檔的位置依專案結構調整，這裡假設 SCSS 都放在 scss/ 底下。
+grep -rn -A30 "legacy-browser-notice" --include='*.scss' scss/
 ```
 
-第一個指令應該**沒有輸出**——提示列的 HTML 只該由共用 js 產生。
+第 1 道應該**沒有輸出**——提示列的 HTML 只該由共用 js 產生。但這個結論只有在第 2 道
+真的列出檔案時才成立：兩道用的是同一組路徑與參數，第 2 道有輸出才證明第 1 道的 0 筆
+是「真的沒有」，而不是指令本身沒掃到任何檔案。

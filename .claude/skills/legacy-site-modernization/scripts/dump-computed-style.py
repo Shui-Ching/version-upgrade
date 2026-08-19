@@ -18,9 +18,14 @@
     # 只列出真正變掉的屬性
     python dump-computed-style.py compare before.json after.json
 
-需求：playwright（裝在暫存的 venv，不要動專案的 package.json／node_modules）
-    python -m venv venv && ./venv/Scripts/python.exe -m pip install playwright
-    ./venv/Scripts/python.exe -m playwright install chromium
+需求：playwright（裝在專案外的暫存 venv，不要動專案的 package.json／node_modules）
+    # Windows（venv 的執行檔在 Scripts/）
+    python -m venv vrt-venv && ./vrt-venv/Scripts/python.exe -m pip install playwright
+    ./vrt-venv/Scripts/python.exe -m playwright install chromium
+
+    # macOS／Linux（venv 的執行檔在 bin/）
+    python3 -m venv vrt-venv && ./vrt-venv/bin/python -m pip install playwright
+    ./vrt-venv/bin/python -m playwright install chromium
 """
 
 import argparse

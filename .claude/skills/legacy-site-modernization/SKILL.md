@@ -108,7 +108,7 @@ grep -rEon '<a[[:space:]][^>]*>' --include='*.html' . | grep '_blank' | grep -v 
 
 ### 附帶的工具
 
-**視覺回歸量測（需要 playwright，裝在暫存的 venv，不要動專案的 `package.json`）：**
+**視覺回歸量測（需要 Python 3 ＋ playwright ＋ pillow，裝在專案外的暫存 venv，不要動專案的 `package.json`。Windows 與 macOS／Linux 的完整安裝指令見 [`references/07-visual-regression-verification.md`](references/07-visual-regression-verification.md) 的「環境準備」一節）：**
 
 - [`scripts/dump-computed-style.py`](scripts/dump-computed-style.py) — 傾印瀏覽器實際算出來的樣式並比對前後差異，回答「變的是**哪一個屬性**、從什麼變成什麼」。也用來在動手前找出「專案的覆寫其實沒生效」這類既有 bug（判讀見 `references/04-bootstrap-upgrade.md` 的「先確認舊版套件現在到底蓋掉了什麼」）。
 - [`scripts/compare-screenshots.py`](scripts/compare-screenshots.py) — 同時開「升級前」與「升級後」兩台本機伺服器逐段捲動比對，回答「**哪一塊**、多大範圍變了」，並一併回報頁面總高與水平溢出量這兩個不變量。

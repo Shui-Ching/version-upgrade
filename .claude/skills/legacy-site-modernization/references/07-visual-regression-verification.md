@@ -6,6 +6,7 @@
 
 ## 目錄
 
+- [環境準備：裝 playwright 與 pillow](#環境準備裝-playwright-與-pillow)
 - [先建立一份可以並排比對的「升級前」](#先建立一份可以並排比對的升級前)
   - [如果舊站現在還在線上跑，優先拿正式站當基準](#如果舊站現在還在線上跑優先拿正式站當基準)
 - [三層驗收，照這個順序看](#三層驗收照這個順序看)
@@ -14,6 +15,34 @@
 - [掃描指令要先自我驗證](#掃描指令要先自我驗證)
 
 ---
+
+## 環境準備：裝 playwright 與 pillow
+
+兩支量測腳本（`scripts/compare-screenshots.py`、`scripts/dump-computed-style.py`）需要 Python 3、`playwright` 與 `pillow`。**裝在專案外的暫存 venv，不要動專案的 `package.json`，也不要裝進系統 Python**——這次版更的驗收條件是「畫面不能變」，在專案裡多裝一套相依套件本身就是一種改動。
+
+```bash
+# Windows（Git Bash／PowerShell 皆可，路徑是 Scripts）
+cd /c/tmp && python -m venv vrt-venv
+./vrt-venv/Scripts/python.exe -m pip install playwright pillow
+./vrt-venv/Scripts/python.exe -m playwright install chromium
+
+# macOS／Linux（路徑是 bin）
+cd /tmp && python3 -m venv vrt-venv
+./vrt-venv/bin/python -m pip install playwright pillow
+./vrt-venv/bin/python -m playwright install chromium
+```
+
+之後所有指令都用這個 venv 裡的 python 執行，例如：
+
+```bash
+# Windows
+/c/tmp/vrt-venv/Scripts/python.exe scripts/compare-screenshots.py --before-port 8900 --after-port 8899 --pages index.html
+
+# macOS／Linux
+/tmp/vrt-venv/bin/python scripts/compare-screenshots.py --before-port 8900 --after-port 8899 --pages index.html
+```
+
+`playwright install chromium` 會另外下載一份 Chromium，第一次跑要等幾分鐘；漏跑這一步的症狀是執行腳本時報告找不到瀏覽器執行檔，不是語法錯誤，照著訊息把這行補跑一次即可。用完整個 `vrt-venv` 資料夾直接刪掉即可。
 
 ## 先建立一份可以並排比對的「升級前」
 

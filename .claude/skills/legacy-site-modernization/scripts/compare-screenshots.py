@@ -16,7 +16,8 @@
     python compare-screenshots.py --before-port 8900 --after-port 8899 \\
         --pages index.html news.html --widths 320 768 1200
 
-需求：playwright 與 pillow，裝在暫存的 venv，不要動專案的 package.json。
+需求：playwright 與 pillow，裝在專案外的暫存 venv，不要動專案的 package.json。
+兩種平台的完整安裝指令見 references/07-visual-regression-verification.md 的「環境準備」一節。
 
 三個關於量測方法的重點，都是踩過才知道的：
 
