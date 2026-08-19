@@ -17,6 +17,8 @@ description: >
 
 # 舊版瀏覽器提示
 
+最後更新：2026-08-19（權威版本在 [github.com/Shui-Ching/version-upgrade](https://github.com/Shui-Ching/version-upgrade)）
+
 給 Bootstrap 5 之後的靜態站：IE 不支援 CSS 自訂屬性（`var()`），BS5 幾乎所有元件的
 顏色與間距都靠它，在 IE 開起來會是沒有樣式的裸文字，而且沒有可行的 polyfill。
 與其假裝支援，不如明白告訴使用者換瀏覽器。
