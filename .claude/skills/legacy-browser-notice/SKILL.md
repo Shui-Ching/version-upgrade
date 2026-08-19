@@ -152,11 +152,19 @@ IE 丟掉後者留下前者：
 改完之後，被改到的檔案要讓瀏覽器重新抓：
 
 1. **共用 js**：全站頁面的 `<script src="js/theme.js?20260818a">` 版本號要一起更新。
+   頁面全部放在同一層時：
+
    ```bash
-   # *.html 只涵蓋當前目錄那一層；頁面散在子目錄的站要改成下面這行
    perl -pi -e 's{js/theme\.js\?[^"]*}{js/theme.js?20260818a}g' *.html
+   ```
+
+   頁面散在子目錄時改用這道（`*.html` 只涵蓋當前目錄那一層，會漏掉子目錄的頁面）：
+
+   ```bash
    find . -name '*.html' -not -path './vendor/*' -exec perl -pi -e 's{js/theme\.js\?[^"]*}{js/theme.js?20260818a}g' {} +
    ```
+
+   兩道擇一執行，不要兩道都跑。
    改完用 `grep -rn 'theme\.js?' --include='*.html' .` 看一次，版本號應該全站一致；
    還有舊值代表那幾頁沒被上面的路徑涵蓋到。
 2. **CSS**：新增了 `.legacy-browser-notice` 樣式，編譯產物也變了，
