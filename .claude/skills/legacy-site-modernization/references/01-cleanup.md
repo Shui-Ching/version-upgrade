@@ -12,7 +12,7 @@
 
 1. 先確認網站現在實際怎麼跑——是純靜態檔案直接放上 Apache/Nginx，還是還有 PHP 在跑。如果不確定，問使用者，不要用「這個資料夾看起來很舊」當刪除依據。
 2. 對每個候選資料夾，用 `Grep` 搜尋專案內是否有任何檔案引用到它的路徑（例如搜資料夾名稱字串），確認搜尋範圍涵蓋所有 `.html`、`.php`、`.js` 檔。
-3. 確認沒有任何引用後才刪除，並在 commit message 寫清楚刪了什麼類別的東西（案例：`d2d49b2 移除 html 資料夾、Templates資料夾、XML、php`）。
+3. 確認沒有任何引用後才刪除，並在 commit message 寫清楚刪了什麼類別的東西（案例：`移除 html 資料夾、Templates資料夾、XML、php`）。
 
 ## 節點 2：掃出沒引用的 css/js 並刪除（含套件）
 
@@ -35,7 +35,7 @@
 3. 套件（`vendor/` 底下整包的第三方庫，如本案例的 `fullcalendar`、`easypiechart`）要當一個單位判斷，不要只刪其中沒被連結的幾支檔案——半殘的套件比完全沒用的套件更危險，之後有人會去 `vendor/` 裡找還在的檔案以為套件還能用。
 4. 圖片、字型等資源檔如果只被剛刪掉的 CSS/JS 引用，屬於連帶死碼，一併清掉，但要走同樣的「先觀察再刪」流程，因為圖片常常被 CSS 的 `background-image` 引用，純文字搜尋比較容易漏。
 
-案例：commit `5304016 掃出沒引用的css、js 並刪除(套件)`，一次清掉了 `easypiechart`、`fancy-box` 的 helper 檔、`fullcalendar` 整包、多個版本並存的 jQuery（`jquery-1.10.1.min.js` 與 `jquery-3.1.1.min.js` 同時存在，只有一個真的被引用）。
+案例：commit message 寫成 `掃出沒引用的css、js 並刪除(套件)`，那一次清掉了 `easypiechart`、`fancy-box` 的 helper 檔、`fullcalendar` 整包、多個版本並存的 jQuery（`jquery-1.10.1.min.js` 與 `jquery-3.1.1.min.js` 同時存在，只有一個真的被引用）。
 
 ### 特殊情境：SCSS 遷移後判斷舊版獨立 .css 是否已死
 
