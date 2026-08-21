@@ -67,8 +67,8 @@ grep -rn 'Bootstrap v' --include='*.css' --include='*.js' --include='*.scss' . |
 
 ```bash
 for p in 'col-xs-' 'glyphicon' 'panel' 'thumbnail' 'img-responsive' 'btn-default' \
-         'pull-left\|pull-right' 'hidden-\|visible-' 'navbar-toggle\b' 'input-group-addon' \
-         'card\b' 'jumbotron' 'form-group' 'no-gutters' 'ml-[0-9]\|mr-[0-9]' 'float-left\|float-right' \
+         'pull-left\|pull-right' 'hidden-\|visible-' 'navbar-toggle\>' 'input-group-addon' \
+         'card\>' 'jumbotron' 'form-group' 'no-gutters' 'ml-[0-9]\|mr-[0-9]' 'float-left\|float-right' \
          'data-toggle' 'data-bs-toggle'; do
   printf '%-30s %s\n' "$p" "$(grep -rEoh "$p" --include='*.html' . | wc -l)"
 done
@@ -80,11 +80,11 @@ done
 
 1. **沒有後綴的 BS3 工具類**：`.hidden`、`.show`、`.hide`、`.invisible`、`.text-hide`、`.sr-only`、`.clearfix`、`.center-block`。用 `hidden-[a-z]+` 這種帶後綴的樣式去掃，`.hidden` 剛好掃不到。BS5 只保留 `.clearfix`、`.invisible`、`.visually-hidden`，其餘要換成 `.d-none` 之類的顯示工具。**漏掉 `.hidden` 的後果是原本隱藏的區塊整個顯示出來**——實測首頁因此多出 267px 的一整條區塊。單獨掃一次：
    ```bash
-   grep -rEon 'class="[^"]*\b(hidden|show|hide|invisible|text-hide|center-block)\b' --include='*.html' .
+   grep -rEon 'class="[^"]*\<(hidden|show|hide|invisible|text-hide|center-block)\>' --include='*.html' .
    ```
 2. **新舊版都有、但需要子元素補 class 的元件**：`.pagination`、`.breadcrumb`、`.nav`、`.dropdown-menu`。這些 class 在 BS5 依然存在，所以「這個 class 還在不在」的掃描一定通過——但 BS3 是靠 `.pagination > li > a` 這種後代選擇器上樣式，BS5 改成要在子元素寫 `.page-item`／`.page-link`／`.breadcrumb-item`。**沒補的話樣式完全不套用，而 HTML 看起來毫無問題。** 逐一確認：
    ```bash
-   grep -rEon 'class="[^"]*\b(pagination|breadcrumb|nav|dropdown-menu)\b' --include='*.html' .
+   grep -rEon 'class="[^"]*\<(pagination|breadcrumb|nav|dropdown-menu)\>' --include='*.html' .
    ```
 3. **行為定義改變、class 名稱沒變的**：`.container` 的 clearfix、`.row` 的 flex 化等，見 [4-7](#4-7-結構性差異class-掃描抓不到但會動到整頁的那一批)。
 
@@ -644,10 +644,10 @@ grep 只能證明「舊寫法沒有殘留」，證明不了「畫面對不對」
 grep -rEon 'data-(toggle|target|dismiss|ride|slide|slide-to|parent|spy)=' --include='*.html' --include='*.js' --include='*.css' --include='*.scss' .
 
 # BS4 方向性 utility 殘留
-grep -rEon '\b(float-(left|right)|m[lr]-[0-9]|p[lr]-[0-9]|text-(left|right)|font-weight-|font-italic|no-gutters|btn-block|badge-(primary|secondary|success|danger|warning|info|light|dark|pill)|thead-(light|dark)|custom-(select|range|control|file)|input-group-(append|prepend)|form-(group|row|inline)|jumbotron|media-body|card-(deck|columns)|text-monospace)\b' --include='*.html' --include='*.js' --include='*.scss' .
+grep -rEon '\<(float-(left|right)|m[lr]-[0-9]|p[lr]-[0-9]|text-(left|right)|font-weight-|font-italic|no-gutters|btn-block|badge-(primary|secondary|success|danger|warning|info|light|dark|pill)|thead-(light|dark)|custom-(select|range|control|file)|input-group-(append|prepend)|form-(group|row|inline)|jumbotron|media-body|card-(deck|columns)|text-monospace)\>' --include='*.html' --include='*.js' --include='*.scss' .
 
 # BS3 殘留（BS3 起點才需要）
-grep -rEon '\b(col-xs-|col-(sm|md|lg)-(offset|push|pull)-|glyphicon|panel(-heading|-body|-footer|-default|-primary)?|well|thumbnail|img-(responsive|circle|rounded)|pull-(left|right)|center-block|hidden-(xs|sm|md|lg|print)|visible-|btn-(default|xs)|table-condensed|label-(default|primary|success|info|warning|danger)|control-label|help-block|input-(lg|sm)|input-group-(addon|btn)|has-(error|warning|success)|navbar-(default|toggle|form)|carousel-inner|page-header|pager)\b' --include='*.html' --include='*.js' --include='*.scss' .
+grep -rEon '\<(col-xs-|col-(sm|md|lg)-(offset|push|pull)-|glyphicon|panel(-heading|-body|-footer|-default|-primary)?|well|thumbnail|img-(responsive|circle|rounded)|pull-(left|right)|center-block|hidden-(xs|sm|md|lg|print)|visible-|btn-(default|xs)|table-condensed|label-(default|primary|success|info|warning|danger)|control-label|help-block|input-(lg|sm)|input-group-(addon|btn)|has-(error|warning|success)|navbar-(default|toggle|form)|carousel-inner|page-header|pager)\>' --include='*.html' --include='*.js' --include='*.scss' .
 ```
 
 三個指令都要連 `*.scss`／`*.css` 一起掃，不能只掃 HTML——專案自己的樣式檔裡常有針對舊 class 的覆寫規則（`.panel-heading { background: #eee; }`），HTML 改完了但 CSS 還在鎖舊名稱，那條規則就變成死碼，而新的 `.card-header` 沒有拿到該有的樣式。這類「HTML 改了、CSS 沒跟上」的漏改，畫面上表現為某一塊顏色或間距怪怪的，很難直覺聯想到是升級造成的。

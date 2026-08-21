@@ -94,7 +94,7 @@ grep -rn 'Bootstrap v\|jQuery v\|@version' --include='*.js' --include='*.css' . 
 原碼掃描最常報的一類。掃描器會標出所有寫入 `innerHTML`、`outerHTML`、`document.write`、`eval`、`insertAdjacentHTML` 的位置。
 
 ```bash
-grep -rEon 'innerHTML|outerHTML|document\.write|insertAdjacentHTML|\beval\(|new Function\(' --include='*.js' --include='*.html' .
+grep -rEon 'innerHTML|outerHTML|document\.write|insertAdjacentHTML|\<eval\(|new Function\(' --include='*.js' --include='*.html' .
 ```
 
 逐處判斷寫入的字串來源（判準與改法見 `05-remove-jquery.md` 的陷阱 8）：寫死的樣板字串可以留；只要有任何來自網址參數、表單輸入、後端回傳資料的變數，就要改成 `textContent`，或用 `document.createElement()` 逐個建立元素、文字部分用 `textContent` 設定。
