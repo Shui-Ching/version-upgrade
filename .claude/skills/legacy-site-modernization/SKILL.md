@@ -5,7 +5,7 @@ description: 舊版靜態網站（純 HTML/CSS/JS，無 npm/build tool）的整�
 
 # 舊站整體版更
 
-最後更新：2026-08-19（權威版本在 [github.com/Shui-Ching/version-upgrade](https://github.com/Shui-Ching/version-upgrade)，更新規則見文末）
+最後更新：2026-08-20（權威版本在 [github.com/Shui-Ching/version-upgrade](https://github.com/Shui-Ching/version-upgrade)，更新規則見文末）
 
 把「接手一個舊版純靜態網站，要整理到能放心維護、能通過資安檢測」這件事拆成 11 個節點。前 10 個彼此有嚴格的順序依賴，這套流程是在一個實際的活動樣板站（jQuery + 舊版 Bootstrap + 手刻 CSS）上完整跑出來的，不是紙上推演，下一個類似的舊專案可以直接照這份清單走。節點 11（加上不支援 IE 提示）只依賴節點 7，不吃前 10 個節點的順序鏈，排在清單最後純粹是為了不動到既有編號。
 
@@ -104,7 +104,7 @@ grep -rEon '<a[[:space:]][^>]*>' --include='*.html' . | grep '_blank' | grep -v 
 
 - [`references/01-cleanup.md`](references/01-cleanup.md) — 節點 1、2（除去廢 code）：怎麼安全判定「沒被引用」、危險地帶清單
 - [`references/02-modernize.md`](references/02-modernize.md) — 節點 3～9（整體版更）：共用元件化、CSS→SCSS、inline JS／CSS 搬出 HTML、CDN 化、第三方套件升級。節點 4、7、8 在這裡只有摘要與示警，細節見下面的專章
-- [`references/03-a-to-button.md`](references/03-a-to-button.md) — 節點 4 專章（按鈕語意改 `<button>`）：動作 vs 導航的判準、保留的 `<a target="_blank">` 補 `rel="noopener noreferrer"`、`type` 逐顆判斷表、CSS「並列而非取代」、`<button>` 的 reset 清單、`inherit` 權重陷阱、`aria-label` 與驗收 grep
+- [`references/03-a-to-button.md`](references/03-a-to-button.md) — 節點 4 專章（按鈕語意改 `<button>`）：動作 vs 導航的判準、保留的 `<a target="_blank">` 補 `rel="noopener noreferrer"`、`type` 逐顆判斷表、CSS「並列而非取代」、`<button>` 的 reset 清單、`inherit` 權重陷阱、**icon-only 按鈕的可及名稱完整做法**（`aria-label` 在按鈕上／`aria-hidden` 在 `<i>` 上、命名規則、哪些不用補、切換型按鈕的動態 label 與工程端交接）、**「改標籤會讓工程端事件綁定失效」的交接寫法**
 - [`references/04-bootstrap-upgrade.md`](references/04-bootstrap-upgrade.md) — 節點 7 專章（升級到 BS 5.3.7）：**起點是 BS3 還是 BS4 的兩層偵測方法**、混用狀態的處理、規模估算與三種策略選項、共通工作（`data-bs-*` 命名空間、Popper 2、原生 API）、BS4→BS5 差異清單、BS3→BS5 額外差異清單（含斷點位移換算）、視覺零變更的覆寫層做法、驗收
 - [`references/05-remove-jquery.md`](references/05-remove-jquery.md) — 節點 8 專章（移除 jQuery 改原生 JS）：盤點指令、三分類與處理順序（含套件檔案「混裝」吃 jQuery 與不吃 jQuery 程式碼的判斷）、基本對照表、十二個語意陷阱（集合 vs 單一、事件委派、`display` 值遺失、CSS hover 改雙軌點擊時的卡住 bug、`fetch` 不 reject 4xx、`innerHTML` 的 XSS 等）、刪除 jQuery 標籤的時機、驗收
 - [`references/06-security-scan-fixes.md`](references/06-security-scan-fixes.md) — 節點 10 專章（弱點掃描與原始碼掃描的修復）：兩種掃描的差異、發現項分類與處理順序、常見項目的修法（相依套件 CVE、安全標頭、XSS sink、SRI、cookie 屬性、資訊洩漏）、誤報的處理、複掃與交付
@@ -125,6 +125,10 @@ grep -rEon '<a[[:space:]][^>]*>' --include='*.html' . | grep '_blank' | grep -v 
 
 兩支要搭配著用：只做像素比對會卡在「知道不對但不知道改哪裡」，只做屬性比對會漏掉版面位移這種不歸屬於單一元素的變化。
 
+**節點 4 稽核（只需要 Node，不需要安裝任何東西）：**
+
+- [`scripts/audit-aria-label.js`](scripts/audit-aria-label.js) ＋ [`scripts/label-rules.json`](scripts/label-rules.json) — 找出沒有可及名稱的 icon-only `<button>`，依規則表批次補 `aria-label` 並替裡面的 `<i>` 補 `aria-hidden="true"`；比對不到規則的只回報不亂填，另外會列出「疑似當按鈕用的 `<a>`／`<span>`」但不修。**會遞迴子資料夾**（跳過 `node_modules`／`.git`／`vendor`／`dist`），與下面三支 `audit-*.js` 的扁平假設不同。接新專案先改 `label-rules.json`。界限與判讀見 `references/03-a-to-button.md`。
+
 **Bootstrap 升級稽核（只需要 Node，不需要安裝任何東西）：**
 
 - [`scripts/migrate-data-attrs.js`](scripts/migrate-data-attrs.js) — 批次把 `data-*` 改成 `data-bs-*`，HTML 與 CSS 一起改。會遞迴子資料夾、跳過 `vendor/`。先跑 `--dry`。
@@ -132,7 +136,7 @@ grep -rEon '<a[[:space:]][^>]*>' --include='*.html' . | grep '_blank' | grep -v 
 - [`scripts/audit-behavior-changes.js`](scripts/audit-behavior-changes.js) — 掃 `08-bs5-behavior-traps.md` 的第 1、2、3、5、6、8 項與「`a` 預設有底線」。
 - [`scripts/audit-bs5-component-vars.js`](scripts/audit-bs5-component-vars.js) — 掃該章第 4 項（元件 `--bs-*` 變數蓋掉繼承色），只比對顏色類變數。
 
-**三支 `audit-*.js` 假設扁平結構**（只讀 `<專案目錄>/*.html` 不遞迴、`<專案目錄>/css/*.css`），路徑對不上的專案不會報錯、只會回報乾淨——照上面「回報 0 筆的指令，可能是指令本身壞了」那條，跑之前先確認路徑。該章第 7、9 項兩支腳本都掃不到，只能人工。
+**上面 Bootstrap 那三支 `audit-*.js` 假設扁平結構**（只讀 `<專案目錄>/*.html` 不遞迴、`<專案目錄>/css/*.css`），路徑對不上的專案不會報錯、只會回報乾淨——照上面「回報 0 筆的指令，可能是指令本身壞了」那條，跑之前先確認路徑。該章第 7、9 項兩支腳本都掃不到，只能人工。
 
 附帶的樣板：
 

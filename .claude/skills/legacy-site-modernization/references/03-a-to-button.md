@@ -79,9 +79,73 @@ grep -rEon '<button[^>]*>' --include='*.html' . | grep -v 'type='
 
 ## 只有 icon 的按鈕一律補 `aria-label`
 
-分享、移除、密碼眼睛這類沒有文字的按鈕，螢幕閱讀器只會唸出空白。補 `aria-label="移除項目"` 之類的描述。
+按鈕的**可及名稱**（accessible name）是螢幕閱讀器唸出來的那串字，計算順序是
+`aria-labelledby` → `aria-label` → 元素內的文字內容。分享、移除、密碼眼睛這類只有 icon 的按鈕三者皆空，讀屏唸出來是「按鈕」，或更糟——icon font 靠 `::before` 的 `content: "e996"` 塞私用區字元顯示，瀏覽器會把生成內容送進無障礙樹，讀屏可能唸出無意義的字碼。
 
-**原本寫在 `<a>` 上的 `aria-hidden="true"` 要移除**——那是給裝飾性 icon 用的，留在按鈕本體上會讓整顆按鈕對螢幕閱讀器消失，比不改還糟。
+所以要補的是兩件事，缺一不可：
+
+```html
+<button type="button" class="cart-remove" aria-label="移除商品">
+  <i class="fa fa-times" aria-hidden="true"></i>
+</button>
+```
+
+1. `<button>` 上補 `aria-label`。
+2. 裡面的 `<i>` 補 `aria-hidden="true"`。名稱既然已由 `aria-label` 決定（名稱計算不會再往子節點看），icon 就純屬裝飾，該從無障礙樹隱藏。這一項常被當成可有可無，實際上它才是擋掉唸出亂碼的那一半。
+
+**`aria-hidden` 絕不能加在 `<button>` 自己身上**——那會讓整顆按鈕從無障礙樹消失，比沒名稱更糟。舊切版稿常見把 `aria-hidden="true"` 寫在當按鈕用的 `<a>` 上（原意是想隱藏裡面的裝飾 icon，卻寫錯了層級），改標籤時要一併移除。
+
+### 命名規則
+
+- **講這顆按鈕會做什麼，不是它長什麼樣**。「移除商品」不是「叉叉」「垃圾桶」。
+- **短，且在該頁面唯一可辨識**。讀屏使用者常用「列出所有按鈕」瀏覽，一頁出現 12 個「移除」，不如「移除商品」／「移除優惠碼」分得清楚。
+- **不要寫「按鈕」兩個字**。role 本身就會唸出來，否則變成「移除商品按鈕按鈕」。
+- **同一個功能全站用同一個說法**。同動作在不同頁換講法，等於讓使用者多學一次。
+
+### 哪些不用補
+
+補過頭會讓讀屏更吵，動手前先確認不是這幾類：
+
+- **已有可見文字**——文字本身就是名稱。再加 `aria-label` 會蓋掉它，造成語音與畫面不一致（語音操作的使用者唸畫面上的字會叫不動按鈕）。
+- **有 `.sr-only` / `.visually-hidden` 的隱藏文字**，或已有 `aria-labelledby` / `title`。
+- **modal 關閉鈕**——Bootstrap 樣板多半已經帶了 `aria-label="Close"`，先掃再說，不要無條件覆寫。
+- **純裝飾、不可互動的元素**——那不是按鈕，該確認的是它沒有 `role="button"`、沒有 `tabindex`，而不是給它名稱。
+- **有實際文字或圖片 `alt` 的導航 `<a>`**。
+
+判斷「有沒有名稱」時，空字串的 `aria-label=""` 視同沒有（無障礙掃描器也是這樣算），`<img alt="…">` 與 `.sr-only` 隱藏文字則視同有。
+
+### 切換型按鈕的名稱是動態的
+
+密碼眼睛、收合展開、加入／移除收藏這類按鈕，**狀態變了名稱就要跟著變**，否則使用者聽到的永遠是「顯示密碼」，即使密碼已經顯示中：
+
+```js
+btn.setAttribute('aria-label', isText ? '隱藏密碼' : '顯示密碼');
+```
+
+切版稿只能給**初始狀態**的名稱。真正的切換邏輯常在工程端——正式機是後端輸出的那段 JS 在切 `input` 的 `type`，切版稿裡根本找不到。動手前先確認那段邏輯在哪一端，不要因為切版稿的 js 裡沒有就斷定「功能不存在」；確認在工程端的話，**要把上面那行明確列進交接事項**，否則 label 會永遠停在初始值，而且切版稿上測不出來。
+
+若專案允許動 HTML 結構，`aria-pressed` 比動態 label 更精準（名稱固定為功能名，狀態交給 `aria-pressed`），但那需要工程端一起維護狀態值，通常不是切版端單方面能決定的。
+
+### 驗收要用腳本，`grep` 不夠
+
+「按鈕內沒有文字」不是單行正則判得出來的：內容可能跨行、可能包著 `<span>`、可能只有 `&nbsp;`。要先抓出整顆 button、剝掉標籤、還原實體、trim，才知道是不是真的空的。用同層的 [`../scripts/audit-aria-label.js`](../scripts/audit-aria-label.js)：
+
+```bash
+node .claude/skills/legacy-site-modernization/scripts/audit-aria-label.js .        # 只列出缺名稱的按鈕
+node .claude/skills/legacy-site-modernization/scripts/audit-aria-label.js . --fix  # 依規則表批次補上
+```
+
+它做四件事：找出無可及名稱的 `<button>`、依規則表對照命名、把該顆按鈕裡的 `<i>` 補上 `aria-hidden="true"`、**比對不到規則的一律跳過並列出來讓人判斷**。另外會回報「疑似當按鈕用的 `<a>`／`<span>`」但**不修**——那些要先照本節點改標籤，直接在錯的標籤上補 label 只是掩蓋問題。
+
+規則表在 [`../scripts/label-rules.json`](../scripts/label-rules.json)，形式是「class 或 icon class → label」，比對順序是元素自身 class 優先於內部 `<i>` 的 class。**接新專案第一件事就是改這張表**，裡面現有的值來自另一個實際專案（購物車、優惠碼、數量增減、密碼眼睛），不保證適用。
+
+腳本有三個已知界限，會落在人工那一欄：
+
+- 只處理它「這次補上名稱」的那幾顆按鈕的 `<i>`。**原本就有 `aria-label` 的按鈕，裡面的 `<i>` 不會被補 `aria-hidden`**，那批要另外掃。
+- **不會移除誤寫在 `<button>`／`<a>` 本體上的 `aria-hidden="true"`**，那要人工拿掉。
+- 猜不出名稱時寧可回報也不亂填——這是刻意的。生出 12 個「按鈕」「操作」這種等於沒說的 label，比留空更難被發現。
+
+跨檢查可以用 Lighthouse 或 axe 的 `button-name` 規則，但它們只查靜態 HTML，動態 label 那一項只有人工測得出來。
 
 ## CSS 一律「並列」，不要把 `a` 改寫成 `button`
 
@@ -128,7 +192,7 @@ button.那個 class {
 四個容易漏的細節：
 
 - **`display: flex` 的 button 不會自動撐滿父寬**。原本 `<a>` 是 block 佔滿一行，改 button 後要補 `width: 100%`（手風琴標題最常見）。
-- **小尺寸圖示鈕會被預設 padding 撐爆**。像 14×14 的移除鈕，沒清 `padding` / `border` 就會撐破外框線。
+- **小尺寸圖示鈕會被預設 padding 撐爆**。像 14×14 的移除鈕，沒清 `padding` / `border` 就會撐破外框線。**絕對定位的圖示鈕**（數量增減鈕那種 `position: absolute` ＋固定 `width`／`height`）還要多清 `background`，否則會冒出瀏覽器預設的灰底。這三行直接加進並列後的基礎規則即可，對還留著的 `<a>`／`<span>` 無害。
 - **`inline-flex` 會吃掉 icon 與文字之間的空白節點**，原本靠 HTML 空白撐開的間距要改用 `gap`。
 - **`vertical-align`**：button 預設基線與 `<a>` 不同，行內排列的按鈕可能上下偏移，必要時補 `line-height: 1` + `vertical-align: baseline`。
 
@@ -164,7 +228,8 @@ header .header-mobile__navbar > ul li button { font-size: 17px; color: #333; }
 
 - [ ] 每顆 `<button>` 都有 `type`，且 AJAX 動作不是 `submit`、真正的送出鈕不是 `button`
 - [ ] 所有 `target="_blank"` 都帶 `rel="noopener noreferrer"`（站內連結至少帶 `noopener`），JS 的 `window.open` 也帶了 `'noopener'`
-- [ ] 只有 icon 的按鈕都有 `aria-label`，且沒有殘留 `aria-hidden="true"`
+- [ ] 只有 icon 的按鈕都有 `aria-label`（用 `scripts/audit-aria-label.js` 掃到 0 處，不是用 grep），裡面的 `<i>` 都有 `aria-hidden="true"`，且 `<button>` 自己**沒有**
+- [ ] 切換型按鈕（密碼眼睛、收藏）切換後名稱有跟著變；若切換邏輯在工程端，已列入交接事項
 - [ ] 鍵盤 Tab 可聚焦、`Enter`／`Space` 可觸發，modal 可用 `Esc` 關閉
 - [ ] 桌機與手機各斷點的按鈕外觀與改動前一致（字體、字級、對齊、尺寸）
 - [ ] 沒有任何 `!important` 是本次新加的
@@ -173,3 +238,15 @@ header .header-mobile__navbar > ul li button { font-size: 17px; color: #333; }
 ## 移交提醒
 
 `onclick="location.href='…'"` 這種 demo 跳轉，以及未綁動作的確認鈕，交付時要明確列給工程師，否則會被當成已完成的功能。
+
+**改動元素標籤會讓工程端的事件綁定失效，這是本節點最容易漏講的一項。** `.quantity span` 改成 `.quantity button` 之後，後端那支 JS 的 selector 不改就完全沒反應——而 CSS 因為採「並列」所以外觀完全正常，**壞掉的只有功能**，切版稿上還測不出來（切版稿本來就沒有那段邏輯）。凡是動到標籤的，commit 訊息都要開一段「工程端配合事項」：
+
+```
+工程端配合事項：
+- 數量增減的事件綁定選擇器由 .quantity span 改為 .quantity button
+- 密碼顯示切換時請一併更新 aria-label（顯示密碼／隱藏密碼）：
+  btn.setAttribute('aria-label', isText ? '隱藏密碼' : '顯示密碼')
+- 後端輸出的 icon-only 按鈕請比照補上 aria-label（規則見 scripts/label-rules.json）
+```
+
+這幾條最後會進收尾的交付報告，做法見 `commit-delivery-report` skill。

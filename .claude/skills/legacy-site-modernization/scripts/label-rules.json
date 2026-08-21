@@ -1,0 +1,27 @@
+{
+  "_comment": "接新專案先改這張表。比對順序：byClass（元素自身 class）優先於 byIcon（內部 <i> 的 class）。key 為子字串比對，命中即用。",
+  "byClass": {
+    "quantity-plus": "增加數量",
+    "quantity-minus": "減少數量",
+    "qty-add": "增加數量",
+    "qty-sub": "減少數量",
+    "coupon-remove": "移除優惠碼",
+    "cart-remove": "移除商品",
+    "toggle-password": "顯示密碼",
+    "add-favorite": "加入收藏"
+  },
+  "byIcon": {
+    "fa-eye": "顯示密碼",
+    "fa-eye-slash": "隱藏密碼",
+    "fa-heart": "加入收藏",
+    "fa-question": "說明",
+    "fa-angle-up": "增加數量",
+    "fa-angle-down": "減少數量",
+    "fa-plus": "增加",
+    "fa-minus": "減少",
+    "fa-times": "移除",
+    "fa-trash": "刪除",
+    "fa-search": "搜尋",
+    "fa-share": "分享"
+  }
+}
